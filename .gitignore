@@ -1,160 +1,72 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+import random
 
-# C extensions
-*.so
+class person:
+	def __init__ (self, name, hp, arm, dmg):
+		self.name = name
+		self.hp = hp
+		self.arm = arm
+		self.dmg = dmg
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+player_hp = random.randint(50, 70)
+player_arm = random.randint(0,3)
+player_dmg = random.randint(5,10)
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
 
-# Translations
-*.mo
-*.pot
+player = person("knight", player_hp, player_arm, player_dmg)
+print(vars(player))
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
 
-# Flask stuff:
-instance/
-.webassets-cache
+enemy_hp = random.randint(50, 70)
+enemy_arm = random.randint(0,3)
+enemy_dmg = random.randint(5,10)
 
-# Scrapy stuff:
-.scrapy
+enemy = person("monster", enemy_hp, enemy_arm, enemy_dmg)
+print(vars(enemy))
 
-# Sphinx documentation
-docs/_build/
 
-# PyBuilder
-.pybuilder/
-target/
+knight = 0
+monster = 0
+check = ("счет: ", knight, "-", monster)
 
-# Jupyter Notebook
-.ipynb_checkpoints
 
-# IPython
-profile_default/
-ipython_config.py
+print(check)
+print("fight")
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
-
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
-
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/#use-with-ide
-.pdm.toml
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+while True:
+	if player.hp > 0 and enemy.hp > 0:
+		player.hp -=enemy.dmg+random.randint(0, 7)-player.arm
+		print(vars(player))
+	
+		enemy.hp -=player.dmg+random.randint(0, 7)-enemy.arm
+		print(vars(enemy))
+	else:
+		if player.hp > 0:
+			print("победа")
+			player = person("knight", player_hp+5, player_arm, player_dmg)
+			enemy = person("monster", enemy_hp, enemy_arm, enemy_dmg)
+			print(vars(player))
+			knight += 1
+			print("счет: ", knight, "-", monster)
+			print()
+			print("повторить?")
+			new_round = input()
+			if new_round == "да":
+				continue
+			else:
+				break
+		else:
+			print("поражение")
+			enemy = person("monster", enemy_hp+5, enemy_arm, enemy_dmg)
+			player = person("knight", player_hp, player_arm, player_dmg)
+			print(vars(enemy))
+			monster +=1
+			print("счет: ", knight, "-", monster)
+			print()
+			print("повторить?")
+			new_round = input()
+			if new_round == "да":
+				continue
+			else:
+				break
