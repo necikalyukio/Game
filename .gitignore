@@ -1,72 +1,72 @@
+
 import random
 
 class person:
-	def __init__ (self, name, hp, arm, dmg):
+	def __init__ (self, name, hp, dmg):
 		self.name = name
 		self.hp = hp
-		self.arm = arm
 		self.dmg = dmg
 
 
 
 player_hp = random.randint(50, 70)
-player_arm = random.randint(0,3)
-player_dmg = random.randint(5,10)
+player_dmg = random.randint(5,7)
 
 
-player = person("knight", player_hp, player_arm, player_dmg)
+player = person("knight", player_hp, player_dmg)
 print(vars(player))
 
 
 enemy_hp = random.randint(50, 70)
-enemy_arm = random.randint(0,3)
-enemy_dmg = random.randint(5,10)
+enemy_dmg = random.randint(5,7)
 
-enemy = person("monster", enemy_hp, enemy_arm, enemy_dmg)
+enemy = person("monster", enemy_hp, enemy_dmg)
 print(vars(enemy))
 
 
 knight = 0
 monster = 0
-check = ("счет: ", knight, "-", monster)
+check = ("счет: ", "knight", "-", "monster")
 
 
 print(check)
 print("fight")
 
-while True:
-	if player.hp > 0 and enemy.hp > 0:
-		player.hp -=enemy.dmg+random.randint(0, 7)-player.arm
-		print(vars(player))
-	
-		enemy.hp -=player.dmg+random.randint(0, 7)-enemy.arm
-		print(vars(enemy))
-	else:
-		if player.hp > 0:
-			print("победа")
-			player = person("knight", player_hp+5, player_arm, player_dmg)
-			enemy = person("monster", enemy_hp, enemy_arm, enemy_dmg)
+
+def fight():
+	global knight, monster, player, enemy
+	while True:
+		if player.hp > 0 and enemy.hp > 0:
 			print(vars(player))
-			knight += 1
-			print("счет: ", knight, "-", monster)
-			print()
-			print("повторить?")
-			new_round = input()
-			if new_round == "да":
-				continue
-			else:
-				break
-		else:
-			print("поражение")
-			enemy = person("monster", enemy_hp+5, enemy_arm, enemy_dmg)
-			player = person("knight", player_hp, player_arm, player_dmg)
 			print(vars(enemy))
-			monster +=1
-			print("счет: ", knight, "-", monster)
-			print()
-			print("повторить?")
-			new_round = input()
-			if new_round == "да":
-				continue
+			player.hp -=enemy.dmg+random.randint(0, 7)
+			print(vars(player))
+			enemy.hp -=player.dmg+random.randint(0, 7)
+			print(vars(enemy))
+		else:
+			if player.hp > 0:
+				print("победа")
+				player = person("knight", player_hp+5, player_dmg)
+				enemy = person("monster", enemy_hp, enemy_dmg)
+				print(vars(player))
+				knight += 1
+				print("счет: ", knight, "-", monster)
+				return knight, monster, player, enemy
 			else:
-				break
+				print("поражение")
+				enemy = person("monster", enemy_hp+5, enemy_dmg)
+				player = person("knight", player_hp, player_dmg)
+				print(vars(enemy))
+				monster +=1
+				print("счет: ", knight, "-", monster)
+				return knight, monster, player, enemy
+				
+				
+
+				
+while True:
+	x = input("сыграем? ",)
+	if x == "да":
+		fight()
+	else:
+		break
