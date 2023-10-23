@@ -1,4 +1,3 @@
-
 import random
 
 class person:
@@ -8,65 +7,112 @@ class person:
 		self.dmg = dmg
 
 
-
-player_hp = random.randint(50, 70)
+#игрок
+player_hp = random.randint(70, 100)
 player_dmg = random.randint(5,7)
-
 
 player = person("knight", player_hp, player_dmg)
 print(vars(player))
 
 
-enemy_hp = random.randint(50, 70)
-enemy_dmg = random.randint(5,7)
+#противник1
+enemy_hp = random.randint(5, 7)
+enemy_dmg = random.randint(1,3)
 
 enemy = person("monster", enemy_hp, enemy_dmg)
 print(vars(enemy))
 
 
-knight = 0
-monster = 0
-check = ("счет: ", "knight", "-", "monster")
+#счетчики
+grade = 1
+level = 0
+gold = 0
+
+#положение персонажа. camp - в лагере, down - спускается внин, up - возвращается в лагерь
+status = "camp"
 
 
-print(check)
-print("fight")
-
-
+#функция битвы
 def fight():
-	global knight, monster, player, enemy
+	print("сражение")
+	global player, enemy, grade, level, gold
+	print(vars(enemy))
 	while True:
 		if player.hp > 0 and enemy.hp > 0:
 			print(vars(player))
 			print(vars(enemy))
-			player.hp -=enemy.dmg+random.randint(0, 7)
+			player.hp -=enemy.dmg+random.randint(0, 7)+level
 			print(vars(player))
 			enemy.hp -=player.dmg+random.randint(0, 7)
 			print(vars(enemy))
 		else:
 			if player.hp > 0:
 				print("победа")
-				player = person("knight", player_hp+5, player_dmg)
-				enemy = person("monster", enemy_hp, enemy_dmg)
+				print()
 				print(vars(player))
-				knight += 1
-				print("счет: ", knight, "-", monster)
-				return knight, monster, player, enemy
+				gold += (random.randint(3, 5)+level)
+				enemy.hp = enemy_hp
+				return gold, player
 			else:
-				print("поражение")
-				enemy = person("monster", enemy_hp+5, enemy_dmg)
-				player = person("knight", player_hp, player_dmg)
-				print(vars(enemy))
-				monster +=1
-				print("счет: ", knight, "-", monster)
-				return knight, monster, player, enemy
-				
-				
+				print("поражение. Игра окончена")
+				print()
+				return player
+				break
 
-				
-while True:
-	x = input("сыграем? ",)
+
+#варианты дейсивий в лагере.
+def camp():
+	global status
+	print("игрок в лагере. Спускаемся в подземелье? да/нет")
+	x = input()
+	if x == "да":
+		status = "down"
+		fight()
+		return status
+	else:
+		print("Ошибка. повторите")
+
+#варианты действий в подземелье
+def down():
+	global status, level
+	print("вы в подземелье. идем дальше? да/нет")
+	x = input()
 	if x == "да":
 		fight()
+		level += 1
+		return level
+	elif x == "нет":
+		status = "up"
+		return status
 	else:
+		print("Ошибка. повторите")
+
+#подьем на поверхность.
+def up():
+	print("вы возвращаетесь в лагерь")
+	global status, level
+	if level > 0:
+		fight()
+		level -= 3
+		return level
+	else:
+		level = 0
+		status = "camp"
+		print("вы вернулись")
+		return status
+
+#действия игрока
+while True:
+	if player.hp < 0:
+		print("игра окончена")
 		break
+	if status == "camp":
+		print(vars(player))
+		print(level)
+		camp()
+	elif status == "down":
+		down()
+		print(vars(player))
+		print(level)
+	else:
+		up()
