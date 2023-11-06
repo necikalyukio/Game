@@ -1,26 +1,32 @@
-#добавить магазин, прокачку
+#добавить прокачку. добавить цвет текста в консоль
 
 import random
 
 class person:
-	def __init__ (self, name, hp, dmg):
+	def __init__ (self, name, hp, dmg, arm, pen):
 		self.name = name
 		self.hp = hp
 		self.dmg = dmg
+		self.arm = arm
+		self.pen = pen
 
 
 #игрок
-player_hp = random.randint(70, 100)
+player_hp = random.randint(170, 200)
 player_dmg = random.randint(7,10)
+player_arm = random.randint(0,3)
+player_pen = random.randint(0,3)
 
-player = person("knight", player_hp, player_dmg)
+player = person("knight", player_hp, player_dmg, player_arm, player_pen)
 
 
 #противник1
-enemy_hp = random.randint(15, 27)
+enemy_hp = random.randint(15, 20)
 enemy_dmg = random.randint(1,3)
+enemy_arm = random.randint(0,1)
+enemy_pen = random.randint(0,1)
 
-enemy = person("monster", enemy_hp, enemy_dmg)
+enemy = person("monster", enemy_hp, enemy_dmg, enemy_arm, enemy_pen)
 
 
 #счетчики
@@ -42,34 +48,42 @@ act = {
 		1:"продолжать спуск",
 		2:"возврат"
 	},
+	"market": {
+		1:"купить меч, +2dmg - 50",
+		2:"купить броню, +20hp - 50",
+		3:"тренировка защиты, +1arm - 50",
+		4:"тренировка нападения, +1pen - 50",
+		5:"лечение, восстановление +50hp - 50",
+		6:"вернуться в лагерь"
+	},
 }
-
-
 
 
 #функция отдых
 def rest():
-	print("безопасное место. вы воссстановили часть здоровья")
+	print("---безопасное место. вы воссстановили часть здоровья")
 	global player
 	player.hp = min(player_hp,player.hp+10)
 	print(vars(player))
+	print()
 	return player
 
 #функция ловушки
 def trap():
-	print("it's a trap!. Вы потеряли часть здоровья")
+	print("---it's a trap!. Вы потеряли часть здоровья")
 	global player
 	player.hp -= 10
 	if player.hp > 0:
 		print(vars(player))
+		print()
 		return player
 	else:
-		print("поражение. Игра окончена")
+		print("---поражение. Игра окончена")
 		print()
 
 #функция битвы
 def fight():
-	print("сражение")
+	print("---сражение")
 	global player, enemy, grade, level, gold
 	print(vars(player))
 	print(vars(enemy))
@@ -77,7 +91,7 @@ def fight():
 	r = 0
 	while True:
 		if player.hp > 0 and enemy.hp > 0:
-			player.hp -=enemy.dmg+random.randint(0, 7)+level+grade
+			player.hp -=enemy.dmg+random.randint(0, 7)+level+grade-max(player.arm-enemy.pen,0)
 			enemy.hp -=player.dmg+random.randint(0, 7)
 			r+=1
 			print("раунд: ", r)
@@ -101,26 +115,84 @@ def fight():
 def camp():
 	global status, act, gold, grade, player, player_hp
 	print(vars(player))
-	player.hp = min(player_hp,player.hp+50)
-	print(vars(player))
-	print("золото - " + str(gold))
-	print("сложность - " + str(grade))
-	print("вы в лагере")
-	print("выберите дейстие")
+	print("---золото - " + str(gold))
+	print("---сложность - " + str(grade))
+	print("---вы в лагере")
+	print("---выберите дейстие")
 	print(act[status])
 	x = input()
 	if x == "1":
 		status = "down"
 		fight()
 		return status
+	elif x == "2":
+		status = "market"
+		market()
+		return status
 	else:
-		print("Ошибка. повторите")
+		print("---Ошибка. повторите")
+
+#варианты действия в магазине
+def market():
+	global status, act, gold, player, player_hp
+	print("---золото - " + str(gold))
+	print("---что хотите купить?")
+	print(act[status])
+	def updmg():
+		global gold, player, player_hp
+		if gold < 50:
+			print("недостаточно золота")
+		else:
+			gold -= 50
+			player.dmg += +2
+		return gold, player, player_hp
+	def uphp():
+		global gold, player, player_hp
+		if gold < 50:
+			print("недостаточно золота")
+		else:
+			gold -= 50
+			player_hp += 20
+			player.hp += 20
+		return gold, player, player_hp
+	def heal():
+		global gold, player, player_hp
+		if gold < 50:
+			print("недостаточно золота")
+		else:
+			gold -= 50	
+			player.hp = min(player_hp,player.hp+50)
+		return gold, player, player_hp
+	def uparm():
+		global gold, player, player_hp
+		if gold < 50:
+			print("недостаточно золота")
+		else:
+			gold -= 50
+			player.arm +=1
+		return gold, player, player_hp
+	def uppen():
+		global gold, player, player_hp
+		if gold < 50:
+			print("недостаточно золота")
+		else:
+			gold -= 50
+			player.pen +=1
+		return gold, player, player_hp
+	def exit():
+		global status
+		status = "camp"
+		return status
+	f = ["-",updmg, uphp, heal, uparm, uppen, exit]
+	rand_func = f[int(input())]
+	rand_func()
+
 
 #варианты действий в подземелье
 def down():
 	global status, level, act
-	print("уровень подземелья - " + str(level))
-	print("выберите дейстие")
+	print("---уровень подземелья - " + str(level))
+	print("---выберите дейстие")
 	print(act[status])
 	x = input()
 	if x == "1":
@@ -133,32 +205,39 @@ def down():
 		status = "up"
 		return status
 	else:
-		print("Ошибка. повторите")
+		print("---Ошибка. повторите")
 
 #подьем на поверхность.
 def up():
-	print("вы возвращаетесь в лагерь")
-	global status, level, grade
+	print("---вы возвращаетесь в лагерь")
+	global status, level, grade, player, player_hp
 	if level > 0:
-		fight()
-		level -= 3
+		f = random.choices([fight, rest, trap], weights=[1,7,1])
+		rand_func = random.choice(f)
+		rand_func()
+		level -= 1
 		return level
 	else:
 		level = 0
 		grade += 1
 		status = "camp"
-		print("вы вернулись. Оно того стоило?")
+		player.hp = min(player_hp,player.hp+20)
+		print("---вы вернулись. Оно того стоило?")
 		return status, grade
 
 #действия игрока
 while True:
 	if player.hp < 0:
-		print("игра окончена")
+		print("-")
+		print("---игра окончена. результат:")
+		print("кол-во спусков: " + str(grade))
 		break
 	if status == "camp":
 		camp()
 	elif status == "down":
 		down()
+	elif status == "market":
+		market()
 	else:
 		up()
 		
