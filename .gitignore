@@ -20,13 +20,7 @@ player_pen = random.randint(0, 3)
 
 player = person("knight", player_hp, player_dmg, player_arm, player_pen)
 
-# противник1
-enemy_hp = random.randint(15, 20)
-enemy_dmg = random.randint(1, 3)
-enemy_arm = random.randint(0, 1)
-enemy_pen = random.randint(0, 1)
 
-enemy = person("monster", enemy_hp, enemy_dmg, enemy_arm, enemy_pen)
 
 # счетчики
 grade = 1
@@ -84,8 +78,9 @@ def trap():
 # функция битвы
 def fight():
     print("---сражение")
-    global player, enemy, grade, level, gold
+    global person, player, grade, level, gold
     print(vars(player))
+    enemy = person("monster", random.randint(15, 20), random.randint(1, 3), random.randint(0, 1), random.randint(0, 1))
     print(vars(enemy))
     print("-")
     r = 0
@@ -102,7 +97,6 @@ def fight():
                 print("победа")
                 print()
                 gold += (random.randint(3, 5) + level)
-                enemy.hp = enemy_hp
                 return gold, player
             else:
                 print("поражение. Игра окончена")
@@ -112,7 +106,7 @@ def fight():
 
 # варианты дейсивий в лагере.
 def camp():
-    global status, act, gold, grade, player, player_hp
+    global person, status, act, gold, grade, player, player_hp
     print("\033[32m{}".format("-"))
     print("\033[32m{}".format(vars(player)))
     print("\033[0m{}".format("-"))
@@ -260,3 +254,5 @@ while True:
         market()
     else:
         up()
+
+
