@@ -145,7 +145,7 @@ def market():
             print("недостаточно золота")
         else:
             gold -= 50
-            player.dmg += +2
+            player.dmg += 2
         return gold, player, player_hp
 
     def uphp():
