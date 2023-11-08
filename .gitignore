@@ -1,3 +1,5 @@
+# Перенести выбор предмета в функцию магазина. Чтобы в выводе указывались парметры предмета и стоимость.
+# Рандомизировать параметры предметов в магазине(под вопросом. Возможно лишнее усложнение на данном этапе)
 # добавить прокачку. Добавить визуал через tkinder
 
 import random
@@ -26,7 +28,7 @@ player = person("knight", player_hp, player_hp, player_dmg, player_arm, player_p
 # счетчики
 grade = 1
 level = 0
-gold = 0
+gold = 99990
 
 # положение персонажа. camp - в лагере, down - спускается внин, up - возвращается в лагерь
 status = "camp"
@@ -140,63 +142,54 @@ def market():
     for key, value in act[status].items(): print(key, ':', value)
     print("\033[0m{}".format("-"))
 
-    def updmg():
-        global gold, player, player_hp
-        if gold < 50:
-            print("недостаточно золота")
-        else:
-            gold -= 50
-            player.dmg += +2
-        return gold, player, player_hp
 
-    def uphp():
-        global gold, player
-        if gold < 50:
-            print("недостаточно золота")
-        else:
-            gold -= 50
-            player.maxhp += 20
-            player.hp += 20
-        return gold, player
+    class item:
+        def __init__(self, name, maxhp, hp, dmg, arm, pen, price):
+            self.name = name
+            self.maxhp = maxhp
+            self.hp = hp
+            self.dmg = dmg
+            self.arm = arm
+            self.pen = pen
+            self.price = price
 
-    def heal():
-        global gold, player
-        if gold < 50:
-            print("недостаточно золота")
-        else:
-            gold -= 50
-            player.hp = min(player.maxhp, player.hp + 50)
-        return gold, player
 
-    def uparm():
-        global gold, player
-        if gold < 50:
-            print("недостаточно золота")
-        else:
-            gold -= 50
-            player.arm += 1
-        return gold, player
+    item1 = item("might", 0, 0, 2, 0, 0, 50)
+    item2 = item("armor", 20, 20, 0, 0, 0, 50)
+    item3 = item("attack", 0, 0, 0, 1, 0, 50)
+    item4 = item("def", 0, 0, 0, 0, 1, 50)
+    item5 = item("heal", 0, 50, 0, 0, 0, 50)
 
-    def uppen():
-        global gold, player
-        if gold < 50:
-            print("недостаточно золота")
-        else:
-            gold -= 50
-            player.pen += 1
-        return gold, player, player_hp
+    select = {
+        0:"exit",
+        1:item1,
+        2:item2,
+        3:item3,
+        4:item4,
+        5:item5
+        }
 
-    def exit():
-        global status
+
+    select_item = select[int(input())]
+    if select_item == "exit":
         status = 'camp'
-        return status
-
-    f = [exit, updmg, uphp, uparm, uppen, heal]
-    try:
-        rand_func = f[int(input())]
-        rand_func()
-    except IndexError:
-        print('---Ошибка. Выберите предмет')
+        return status, player, gold
+    elif int(select_item.price) > gold:
+        print("Недостаточно золота")
+        market()
+    elif select_item == "exit":
+        status = 'camp'
+        return status, player, gold
+    else:
+        print("Куплен " + str(select_item.name))
+        gold -= select_item.price
+        player.maxhp += select_item.maxhp
+        player.hp = min(player.maxhp, player.hp + select_item.hp)
+        player.dmg += select_item.dmg
+        player.arm += select_item.arm
+        player.pen += select_item.pen
+        print(vars(player))
+        return status, player, gold
 
 
 # варианты действий в подземелье
