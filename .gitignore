@@ -202,7 +202,7 @@ def down():
     print("\033[0m{}".format("-"))
     x = input()
     if x == "1":
-        f = random.choices([fight, rest, trap], weights=[5, 2, 99999999])
+        f = random.choices([fight, rest, trap], weights=[5, 1, 1])
         rand_func = random.choice(f)
         rand_func()
         level += 1
