@@ -1,6 +1,6 @@
-# Перенести выбор предмета в функцию магазина. Чтобы в выводе указывались парметры предмета и стоимость.
 # Рандомизировать параметры предметов в магазине(под вопросом. Возможно лишнее усложнение на данном этапе)
-# добавить прокачку. Добавить визуал через tkinder
+# добавить прокачку. 
+# Добавить визуал через tkinder
 
 import random
 
@@ -30,7 +30,7 @@ grade = 1
 level = 0
 gold = 99990
 
-# положение персонажа. camp - в лагере, down - спускается внин, up - возвращается в лагерь
+# положение персонажа. camp - в лагере, down - спускается вниз, up - возвращается в лагерь
 status = "camp"
 
 # выбор действия
@@ -42,14 +42,6 @@ act = {
     "down": {
         1: "продолжать спуск",
         2: "возврат"
-    },
-    "market": {
-        1: "купить меч, +2dmg - 50",
-        2: "купить броню, +20hp - 50",
-        3: "тренировка защиты, +1arm - 50",
-        4: "тренировка нападения, +1pen - 50",
-        5: "лечение, восстановление +50hp - 50",
-        0: "вернуться в лагерь"
     },
 }
 
@@ -69,13 +61,10 @@ def trap():
     print("---it's a trap!. Вы потеряли часть здоровья")
     global player
     player.hp -= 10
-    if player.hp > 0:
-        print(vars(player))
-        print()
-        return player
-    else:
-        print("---поражение. Игра окончена")
-        print()
+    print(vars(player))
+    print()
+    return player
+
 
 
 # функция битвы
@@ -137,12 +126,6 @@ def camp():
 def market():
     global status, act, gold, player, player_hp
     print("---золото - " + str(gold))
-    print("\033[31m{}".format("-"))
-    print("---что хотите купить?")
-    for key, value in act[status].items(): print(key, ':', value)
-    print("\033[0m{}".format("-"))
-
-
     class item:
         def __init__(self, name, maxhp, hp, dmg, arm, pen, price):
             self.name = name
@@ -161,35 +144,52 @@ def market():
     item5 = item("heal", 0, 50, 0, 0, 0, 50)
 
     select = {
-        0:"exit",
         1:item1,
         2:item2,
         3:item3,
         4:item4,
-        5:item5
+        5:item5,
+        }
+
+    productlist = {
+        1: "меч +" + str(item1.dmg),
+        2: "броня +" + str(item2.maxhp),
+        3: "тренировка защиты +" + str(item3.arm),
+        4: "тренировка атаки +" + str(item4.pen),
+        5: "лечение +" + str(item5.hp),
         }
 
 
-    select_item = select[int(input())]
-    if select_item == "exit":
-        status = 'camp'
+
+
+
+    print("\033[31m{}".format("-"))
+    print("---что хотите купить?")
+    print("\033[0m{}".format("-"))
+#    for key, value in select.items(): print(key, ':', vars(value))  эта строка была нужна чтобы вывести список предметов с атрибутами
+    for key, value in productlist.items(): print(key, ':', value)
+    print("0: Вернуться в лагерь")
+    x = input()
+    if x == "0":
+        status = "camp"
         return status, player, gold
-    elif int(select_item.price) > gold:
-        print("Недостаточно золота")
+    try:
+        select_item = select[int(x)]
+        if int(select_item.price) > gold:
+            print("Недостаточно золота")
+            market()
+        else:
+            print("Куплен " + str(select_item.name))
+            gold -= select_item.price
+            player.maxhp += select_item.maxhp
+            player.hp = min(player.maxhp, player.hp + select_item.hp)
+            player.dmg += select_item.dmg
+            player.arm += select_item.arm
+            player.pen += select_item.pen
+            print(vars(player))
+            return status, player, gold
+    except:
         market()
-    elif select_item == "exit":
-        status = 'camp'
-        return status, player, gold
-    else:
-        print("Куплен " + str(select_item.name))
-        gold -= select_item.price
-        player.maxhp += select_item.maxhp
-        player.hp = min(player.maxhp, player.hp + select_item.hp)
-        player.dmg += select_item.dmg
-        player.arm += select_item.arm
-        player.pen += select_item.pen
-        print(vars(player))
-        return status, player, gold
 
 
 # варианты действий в подземелье
@@ -202,7 +202,7 @@ def down():
     print("\033[0m{}".format("-"))
     x = input()
     if x == "1":
-        f = random.choices([fight, rest, trap], weights=[5, 2, 1])
+        f = random.choices([fight, rest, trap], weights=[5, 2, 99999999])
         rand_func = random.choice(f)
         rand_func()
         level += 1
