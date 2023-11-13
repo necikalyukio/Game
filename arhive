@@ -1,0 +1,250 @@
+# Рандомизировать параметры предметов в магазине(под вопросом. Возможно лишнее усложнение на данном этапе)
+# добавить прокачку. 
+# Добавить визуал через tkinder
+
+import random
+
+
+class person:
+    def __init__(self, name, maxhp, hp, dmg, arm, pen):
+        self.name = name
+        self.maxhp = maxhp
+        self.hp = hp
+        self.dmg = dmg
+        self.arm = arm
+        self.pen = pen
+
+
+# игрок
+player_hp = random.randint(170, 200)
+player_dmg = random.randint(7, 10)
+player_arm = random.randint(0, 3)
+player_pen = random.randint(0, 3)
+
+player = person("knight", player_hp, player_hp, player_dmg, player_arm, player_pen)
+
+
+
+# счетчики
+grade = 1
+level = 0
+gold = 99990
+
+# положение персонажа. camp - в лагере, down - спускается вниз, up - возвращается в лагерь
+status = "camp"
+
+# выбор действия
+act = {
+    "camp": {
+        1: "спуск в подземелье",
+        2: "магазин"
+    },
+    "down": {
+        1: "продолжать спуск",
+        2: "возврат"
+    },
+}
+
+
+# функция отдых
+def rest():
+    print("---безопасное место. вы воссстановили часть здоровья")
+    global player
+    player.hp = min(player.maxhp, player.hp + 10)
+    print(vars(player))
+    print()
+    return player
+
+
+# функция ловушки
+def trap():
+    print("---it's a trap!. Вы потеряли часть здоровья")
+    global player
+    player.hp -= 10
+    print(vars(player))
+    print()
+    return player
+
+
+
+# функция битвы
+def fight():
+    print("---сражение")
+    global person, player, grade, level, gold
+    print(vars(player))
+    enemy = person("monster", 0, random.randint(15, 20), random.randint(1, 3), random.randint(0, 1), random.randint(0, 1))
+    print(vars(enemy))
+    print("-")
+    r = 0
+    while True:
+        if player.hp > 0 and enemy.hp > 0:
+            player.hp -= enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)
+            enemy.hp -= player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)
+            r += 1
+            print("раунд: ", r)
+            print(vars(player))
+            print(vars(enemy))
+        else:
+            if player.hp > 0:
+                print("победа")
+                print()
+                gold += (random.randint(3, 5) + level)
+                return gold, player
+            else:
+                print("поражение. Игра окончена")
+                print()
+                return player
+
+
+# варианты дейсивий в лагере.
+def camp():
+    global person, status, act, gold, grade, player, player_hp
+    print("\033[32m{}".format("-"))
+    print("\033[32m{}".format(vars(player)))
+    print("\033[0m{}".format("-"))
+    print("---золото - " + str(gold))
+    print("---сложность - " + str(grade))
+    print("---вы в лагере")
+    print("\033[31m{}".format("-"))
+    print("---выберите дейстие")
+    for key, value in act[status].items(): print(key, ':', value) #этот цикл нужен для того что-бы вывести словарь в верикальном виде, построчно
+    print("\033[0m{}".format("-"))
+    x = input()
+    if x == "1":
+        status = "down"
+        fight()
+        return status
+    elif x == "2":
+        status = "market"
+        market()
+        return status
+    else:
+        print("---Ошибка. повторите")
+
+
+# варианты действия в магазине
+def market():
+    global status, act, gold, player, player_hp
+    print("---золото - " + str(gold))
+    class item:
+        def __init__(self, name, maxhp, hp, dmg, arm, pen, price):
+            self.name = name
+            self.maxhp = maxhp
+            self.hp = hp
+            self.dmg = dmg
+            self.arm = arm
+            self.pen = pen
+            self.price = price
+
+
+    item1 = item("might", 0, 0, 2, 0, 0, 50)
+    item2 = item("armor", 20, 20, 0, 0, 0, 50)
+    item3 = item("attack", 0, 0, 0, 1, 0, 50)
+    item4 = item("def", 0, 0, 0, 0, 1, 50)
+    item5 = item("heal", 0, 50, 0, 0, 0, 50)
+
+    select = {
+        1:item1,
+        2:item2,
+        3:item3,
+        4:item4,
+        5:item5,
+        }
+
+    productlist = {
+        1: "меч +" + str(item1.dmg),
+        2: "броня +" + str(item2.maxhp),
+        3: "тренировка защиты +" + str(item3.arm),
+        4: "тренировка атаки +" + str(item4.pen),
+        5: "лечение +" + str(item5.hp),
+        }
+
+
+
+
+
+    print("\033[31m{}".format("-"))
+    print("---что хотите купить?")
+    print("\033[0m{}".format("-"))
+#    for key, value in select.items(): print(key, ':', vars(value))  эта строка была нужна чтобы вывести список предметов с атрибутами
+    for key, value in productlist.items(): print(key, ':', value)
+    print("0: Вернуться в лагерь")
+    x = input()
+    if x == "0":
+        status = "camp"
+        return status, player, gold
+    try:
+        select_item = select[int(x)]
+        if int(select_item.price) > gold:
+            print("Недостаточно золота")
+            market()
+        else:
+            print("Куплен " + str(select_item.name))
+            gold -= select_item.price
+            player.maxhp += select_item.maxhp
+            player.hp = min(player.maxhp, player.hp + select_item.hp)
+            player.dmg += select_item.dmg
+            player.arm += select_item.arm
+            player.pen += select_item.pen
+            print(vars(player))
+            return status, player, gold
+    except:
+        market()
+
+
+# варианты действий в подземелье
+def down():
+    global status, level, act
+    print("---уровень подземелья - " + str(level))
+    print("\033[31m{}".format("-"))
+    print("---выберите дейстие")
+    for key, value in act[status].items(): print(key, ':', value)
+    print("\033[0m{}".format("-"))
+    x = input()
+    if x == "1":
+        f = random.choices([fight, rest, trap], weights=[5, 1, 1])
+        rand_func = random.choice(f)
+        rand_func()
+        level += 1
+        return level
+    elif x == "2":
+        status = "up"
+        return status
+    else:
+        print("---Ошибка. повторите")
+
+
+# подьем на поверхность.
+def up():
+    print("---вы возвращаетесь в лагерь")
+    global status, level, grade, player, player_hp
+    if level > 0:
+        f = random.choices([fight, rest, trap], weights=[1, 7, 1])
+        rand_func = random.choice(f)
+        rand_func()
+        level -= 1
+        return level
+    else:
+        level = 0
+        grade += 1
+        status = "camp"
+        player.hp = min(player.maxhp, player.hp + 20)
+        print("---вы вернулись. Оно того стоило?")
+        return status, grade
+
+
+# действия игрока
+while True:
+    if player.hp < 0:
+        print("-")
+        print("---игра окончена. результат:")
+        print("кол-во спусков: " + str(grade))
+        break
+    if status == "camp":
+        camp()
+    elif status == "down":
+        down()
+    elif status == "market":
+        market()
+    else:
+        up()
