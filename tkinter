@@ -1,10 +1,15 @@
 #что сделать:
 #Изучить как выводить кнопки при определенном условии.
 #после: доработать рынок
+#понять как добавить скрол в визуал
 #старая, рабочая версия в файле game архив
 
 import random
 import tkinter as tk
+from contextlib import redirect_stdout
+
+
+
 
 class person:
     def __init__(self, name, maxhp, hp, dmg, arm, pen):
@@ -32,48 +37,55 @@ gold = 99990
 status = "camp"
 
 def fight():
-    print("---сражение")
     global person, player, grade, level, gold
-    print(vars(player))
     enemy = person("monster", 0, random.randint(15, 20), random.randint(1, 3), random.randint(0, 1), random.randint(0, 1))
-    print(vars(enemy))
-    print("-")
+    with redirect_stdout(TextWrapper(text)):
+    	print("---сражение") 
+    	print(vars(player))
+    	print(vars(enemy))
+    	print("-")
     r = 0
     while True:
         if player.hp > 0 and enemy.hp > 0:
             player.hp -= enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)
             enemy.hp -= player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)
             r += 1
-            print("раунд: ", r)
-            print(str(player.hp) + " (-" + str(enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)) + ")")
-            print(str(enemy.hp) + " (-" + str(player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)) + ")")
+            with redirect_stdout(TextWrapper(text)):
+            	print("раунд: ", r)
+            	print(str(player.hp) + " (-" + str(enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)) + ")")
+            	print(str(enemy.hp) + " (-" + str(player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)) + ")")
         else:
             if player.hp > 0:
-                print("победа")
+                with redirect_stdout(TextWrapper(text)):
+                	print("победа")
                 print()
                 gold += (random.randint(3, 5) + level)
                 return gold, player
             else:
-                print("поражение. Игра окончена")
+                with redirect_stdout(TextWrapper(text)):
+                	print("поражение. Игра окончена")
                 print()
                 return player
 
 
 def rest():
-    print("---безопасное место. вы воссстановили часть здоровья")
+
     global player
     player.hp = min(player.maxhp, player.hp + 10)
-    print(vars(player))
+    with redirect_stdout(TextWrapper(text)):
+    	print("---безопасное место. вы воссстановили часть здоровья")
+    	print(vars(player))
     print()
     return player
 
 
 # функция ловушки
 def trap():
-    print("---it's a trap!. Вы потеряли часть здоровья")
     global player
     player.hp -= 10
-    print(vars(player))
+    with redirect_stdout(TextWrapper(text)):
+    	print("---it's a trap!. Вы потеряли часть здоровья")
+    	print(vars(player))
     print()
     return player
 
@@ -81,7 +93,8 @@ def trap():
 def down():
     global status, level, act
     status = "down"
-    print("---уровень подземелья - " + str(level))
+    with redirect_stdout(TextWrapper(text)):
+    	print("---уровень подземелья - " + str(level))
     f = random.choices([fight, rest, trap], weights=[5, 1, 1])
     rand_func = random.choice(f)
     rand_func()
@@ -92,10 +105,12 @@ def down():
 def up():
     global status, level, grade, player, player_hp
     if level == 0:
-        print("Вы в лагере")
+        with redirect_stdout(TextWrapper(text)):
+        	print("Вы в лагере")
     elif level > 0:
-        print("---вы возвращаетесь в лагерь")
-        print("---уровень подземелья - " + str(level))
+        with redirect_stdout(TextWrapper(text)):
+        	print("---вы возвращаетесь в лагерь")
+        	print("---уровень подземелья - " + str(level))
         f = random.choices([fight, rest, trap], weights=[1, 7, 1])
         rand_func = random.choice(f)
         rand_func()
@@ -106,7 +121,8 @@ def up():
         grade += 1
         status = "camp"
         player.hp = min(player.maxhp, player.hp + 20)
-        print("---вы вернулись. Оно того стоило?")
+        with redirect_stdout(TextWrapper(text)):
+        	print("---вы вернулись. Оно того стоило?")
         return status, grade
 
 
@@ -164,11 +180,35 @@ def market():
         return status, player, gold
 
 
-
+#основное окно
 win = tk.Tk()
-win.geometry(f"400x500+100+100")
+win.geometry(f"40x50+1+1")
 win.title("Игра")
 
+
+
+
+#команда для вывода текста на экран. в нее перелается текст из функций через with redirect_stdout(TextWrapper(text)): 
+class TextWrapper:
+    def __init__(self, text_field: tk.Text):
+        self.text_field = text_field
+
+    def write(self, text: str):
+        self.text_field.insert(tk.END, text)
+
+    def flush(self):
+        self.text_field.update()
+
+
+
+
+text = tk.Text(win)
+text.pack()
+
+
+
+
+#кнопки
 btn_fight = tk.Button(win, text = "fight", command = fight)
 btn_fight.pack()
 
@@ -180,6 +220,12 @@ btn_up.pack()
 
 btn_market = tk.Button(win, text = "market", command = market)
 btn_market.pack()
+
+
+btn_exit = tk.Button(win, text = "закрыть", command = quit)
+btn_exit.pack()
+def quit(self):
+        self.root.destroy()
 
 
 win.mainloop()
