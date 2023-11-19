@@ -45,7 +45,7 @@ def update():
     print(vars(player), file=indicatorWrapper(indicator))
     print(str(gold), file=goldWrapper(goldtk))
     print(status, file=statusWrapper(statustk))
-    print("---уровень подземелья - " + str(level), file=levelWrapper(leveltk))
+    print(str(level), file=levelWrapper(leveltk))
     return gold, player, level
 
 def fight():
