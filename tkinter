@@ -40,12 +40,18 @@ gold = 9990
 status = "Вы в лагере"
 
 
+def update():
+    global gold, player, level
+    print(vars(player), file=indicatorWrapper(indicator))
+    print(str(gold), file=goldWrapper(goldtk))
+    print(status, file=statusWrapper(statustk))
+    print("---уровень подземелья - " + str(level), file=levelWrapper(leveltk))
+    return gold, player, level
 
 def fight():
     global person, player, grade, level, gold
     enemy = person("monster", 0, random.randint(15, 20), random.randint(1, 3), random.randint(0, 1), random.randint(0, 1))
     print("---сражение", file=TextWrapper(text))
-    print(vars(player), file=indicatorWrapper(indicator))
     print(vars(enemy), file=TextWrapper(text))
     print("-", file=TextWrapper(text))
     r = 0
@@ -62,22 +68,23 @@ def fight():
             if player.hp > 0:
                 print("победа", file=TextWrapper(text))
                 gold += (random.randint(3, 5) + level)
-                print("---золото - " + str(gold), file=goldWrapper(goldtk))
                 return gold, player
             else:
                 print("поражение. Игра окончена", file=TextWrapper(text))
-                if player.hp < 0:
-                    print("-")
-                    print("---игра окончена. результат:", file=TextWrapper(text))
-                    print("кол-во спусков: " + str(grade), file=TextWrapper(text))
-                return player
+                status = "you died"
+                delbotton()
+                print("you died", file=statusWrapper(statustk))
+                print("-")
+                print("---игра окончена. результат:", file=TextWrapper(text))
+                print("кол-во спусков: " + str(grade), file=TextWrapper(text))
+                return player, status
 
 
 def rest():
     global player
     player.hp = min(player.maxhp, player.hp + 10)
     print("---безопасное место. вы воссстановили часть здоровья", file=TextWrapper(text))
-    print(vars(player), file=indicatorWrapper(indicator))
+    update()
     return player
 
 
@@ -86,7 +93,7 @@ def trap():
     global player
     player.hp -= 10
     print("---it's a trap!. Вы потеряли часть здоровья", file=TextWrapper(text))
-    print(vars(player), file=indicatorWrapper(indicator))
+    update()
     return player
 
 
@@ -96,13 +103,12 @@ def down():
     delbotton()
     btn_down.grid()
     btn_up.grid()
-    print(status, file=statusWrapper(statustk))
     print("-", file=TextWrapper(text))
     f = random.choices([fight, rest, trap], weights=[5, 1, 1])
     rand_func = random.choice(f)
     rand_func()
     level += 1
-    print("---уровень подземелья - " + str(level), file=levelWrapper(leveltk))
+    update()
     return level, status
 
 
@@ -113,16 +119,15 @@ def up():
     btn_up.grid(row=1, column=0)
     if level == 0:
         status = "вы в лагере"
-        print(status, file=statusWrapper(statustk))
-        print(vars(player), file=indicatorWrapper(indicator))
+        update()
     elif level > 1:
         level -= 1
-        print(status, file=statusWrapper(statustk))
+        update()
         print("---вы возвращаетесь в лагерь", file=TextWrapper(text))
-        print("---уровень подземелья - " + str(level), file=levelWrapper(leveltk))
         f = random.choices([fight, rest, trap], weights=[1, 7, 1])
         rand_func = random.choice(f)
         rand_func()
+        update()
         return level
     else:
         level = 0
@@ -132,18 +137,18 @@ def up():
         btn_down.grid(row=0, column=0)
         btn_market.grid(row=1, column=0)
         player.hp = min(player.maxhp, player.hp + 20)
-        print(status, file=statusWrapper(statustk))
         print("---вы вернулись. Оно того стоило?", file=TextWrapper(text))
-        print("---уровень подземелья - " + str(level), file=levelWrapper(leveltk))
+        update()
         return status, grade
 
 
 def market():
     global status, act, gold, player, player_hp
     status = "магазин"
-    print(vars(player), file=indicatorWrapper(indicator))
-    print(status, file=statusWrapper(statustk))
-    print("---золото - " + str(gold), file=goldWrapper(goldtk))
+    delbotton()
+    btn_down.grid(row=0, column=0)
+    btn_buy.grid(row=1, column=0)
+    update()
     class item:
         def __init__(self, name, maxhp, hp, dmg, arm, pen, price):
             self.name = name
@@ -203,6 +208,8 @@ root.geometry("1600x600")
 root.title("Игра")
 
 #команда для вывода текста на экран. в нее передается текст из функций в print:
+
+#параметры игрока
 class indicatorWrapper:
     def __init__(self, indicator_field: Text):
         self.indicator_field = indicator_field
@@ -218,6 +225,7 @@ indicator = Text(root, width=30, height=2)
 indicator.pack(side=TOP, fill=BOTH)
 
 
+#общее поле
 class TextWrapper:
     def __init__(self, text_field: Text):
         self.text_field = text_field
@@ -228,12 +236,16 @@ class TextWrapper:
 
     def flush(self):
         self.text_field.update()
-text = Text(root, width=100, height=20)
+text = Text(root, width=1000, height=20)
 text.pack(side=LEFT, fill=BOTH, expand=1)
 
 #text.pack(side=TOP, fill=BOTH)
 #text.place(x=0, y=0)
 
+
+#поле для показателей
+labelpacktk = Label(root, width=10, height=20, bg='gray')
+labelpacktk.pack(side=TOP)
 
 class levelWrapper:
     def __init__(self, level_field: Text):
@@ -245,8 +257,11 @@ class levelWrapper:
 
     def flush(self):
         self.level_field.update()
-leveltk = Text(root, width=30, height=2)
-leveltk.pack(side=TOP, fill=BOTH)
+leveltkLabel = Label(labelpacktk, text = "Уровень подземелья: ", bg='gray')
+leveltkLabel.grid(row=1, column=0)
+leveltk = Text(labelpacktk, width=20, height=2)
+leveltk.grid(row=1, column=1)
+
 
 
 class goldWrapper:
@@ -259,8 +274,12 @@ class goldWrapper:
 
     def flush(self):
         self.gold_field.update()
-goldtk = Text(root, width=30, height=2)
-goldtk.pack(side=TOP, fill=BOTH)
+goldtkLabel = Label(labelpacktk, text = "Золото: ", bg='gray')
+goldtkLabel.grid(row=2, column=0)
+goldtk = Text(labelpacktk, width=20, height=2)
+goldtk.grid(row=2, column=1)
+
+
 
 class statusWrapper:
     def __init__(self, status_field: Text):
@@ -272,8 +291,10 @@ class statusWrapper:
 
     def flush(self):
         self.status_field.update()
-statustk = Text(root, width=30, height=2)
-statustk.pack(side=TOP, fill=BOTH)
+statustkLabel = Label(labelpacktk, text = "Положение: ", bg='gray')
+statustkLabel.grid(row=3, column=0)
+statustk = Text(labelpacktk, width=20, height=2, wrap="word")
+statustk.grid(row=3, column=1)
 
 
 
@@ -288,28 +309,24 @@ text.config(yscrollcommand = scroll.set)
 
 
 
-
-buttonpacktk = Label(root, width=30, height=20, bg='#01579B', fg='#B3E5FC')
-buttonpacktk.pack(side=TOP, fill=BOTH)
+#поле для кнопок
+buttonpacktk = Label(root, width=30, height=20, bg='blue')
+buttonpacktk.pack(side=TOP)
 
 #кнопки
-btn_fight = Button(buttonpacktk, text = "fight", command = fight)
+btn_fight = Button(buttonpacktk, width=15,text = "fight", command = fight)
 #btn_fight.grid(row=0, column=0)
 
-btn_down = Button(buttonpacktk, text = "down", command = down)
+btn_down = Button(buttonpacktk, width=15,text = "down", command = down)
 btn_down.grid(row=1, column=0)
 
-btn_up = Button(buttonpacktk, text = "up", command = up)
+btn_up = Button(buttonpacktk, width=15,text = "up", command = up)
 #btn_up.grid(row=2, column=0)
 
-btn_market = Button(buttonpacktk, text = "market", command = market)
-btn_market.grid(row=3, column=0)
+btn_market = Button(buttonpacktk, width=15, text = "market", command = market)
+btn_market.grid(row=2, column=0)
 
-exitpacktk = Label(root, width=30, height=20, bg='#98FB9A', fg='#B3E5FC')
-exitpacktk.pack(side=TOP, fill=BOTH)
 
-btn_exit = Button(exitpacktk, text = "закрыть", command = quit)
-btn_exit.grid(row=0, column=0)
 
 #функция для удаления всех кнопок
 def delbotton():
@@ -317,14 +334,20 @@ def delbotton():
     btn_down.grid_remove()
     btn_up.grid_remove()
     btn_market.grid_remove()
+    btn_buy.grid_remove()
 
 
 #Поле для ввода
-entry = Entry()
-entry.pack(anchor=NW, padx=6, pady=6)
-btn_buy = Button(root, text = "buy", command = market)
-btn_buy.pack(side=TOP, fill=BOTH)
+entry = Entry(width=15)
+entry.pack(anchor=N, padx=6, pady=6)
+btn_buy = Button(buttonpacktk, width=15, text = "buy", command = market)
+#btn_buy.grid(row=3, column=0)
 
+#поле для кнопки "выход"
+exitpacktk = Label(root, width=30, height=20, bg='green')
+exitpacktk.pack(side=BOTTOM)
 
+btn_exit = Button(exitpacktk, width=15, text = "закрыть", command = quit)
+btn_exit.grid(row=0, column=0)
 
 root.mainloop()
