@@ -1,16 +1,17 @@
 #что сделать:
-#1)доделать перенос вывода текста в индикатор
-#2)понять как очищать поле, чтобы текст не накапливался.
-#3)Изучить как выводить кнопки при определенном условии.
-#4)canvas - это "холст". Его можно отрисовать, указывая размеры, положение. Разобраться
-#после: доработать рынок
+#сделать рынок. покупка через ввод пользователя
+#переделать интерфейс. Сделать удобным
+#битвы на карте чтобы выглядело как норм.геймплей
+
+
 
 #старая, рабочая версия в файле game архив
 
 import random
 from tkinter import *
 from contextlib import redirect_stdout
-
+import pygame
+import sys
 
 
 
@@ -37,117 +38,109 @@ grade = 1
 level = 0
 gold = 9990
 
+#паузы в игре. например между раундами в битве
+time_wait = 0 #оптимальное время = 800.
+
 status = "Вы в лагере"
+text_message = "Вы в лагере"
 
-
-def update():
-    global gold, player, level
-    print(vars(player), file=indicatorWrapper(indicator))
-    print(str(gold), file=goldWrapper(goldtk))
-    print(status, file=statusWrapper(statustk))
-    print(str(level), file=levelWrapper(leveltk))
-    return gold, player, level
 
 def fight():
-    global person, player, grade, level, gold
+    global person, player, grade, level, gold, text_message, time_wait
     enemy = person("monster", 0, random.randint(15, 20), random.randint(1, 3), random.randint(0, 1), random.randint(0, 1))
-    print("---сражение", file=TextWrapper(text))
-    print(vars(enemy), file=TextWrapper(text))
-    print("-", file=TextWrapper(text))
+    text_message = "сражение"
+    print("---сражение")
+    print(vars(enemy))
+    print("-")
     r = 0
     while True:
+        pygame.time.wait(time_wait)
         if player.hp > 0 and enemy.hp > 0:
             player.hp -= enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)
             enemy.hp -= player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)
             r += 1
-            with redirect_stdout(TextWrapper(text)):
-            	print("раунд: ", r)
-            	print(str(player.hp) + " (-" + str(enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)) + ")")
-            	print(str(enemy.hp) + " (-" + str(player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)) + ")")
+            print("раунд: ", r)
+            print(str(player.hp) + " (-" + str(enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)) + ")")
+            print(str(enemy.hp) + " (-" + str(player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)) + ")")
         else:
             if player.hp > 0:
-                print("победа", file=TextWrapper(text))
+                print("победа")
                 gold += (random.randint(3, 5) + level)
                 return gold, player
             else:
-                print("поражение. Игра окончена", file=TextWrapper(text))
+                print("поражение. Игра окончена")
                 status = "you died"
-                delbotton()
-                print("you died", file=statusWrapper(statustk))
+                print("you died")
                 print("-")
-                print("---игра окончена. результат:", file=TextWrapper(text))
-                print("кол-во спусков: " + str(grade), file=TextWrapper(text))
-                return player, status
+                print("---игра окончена. результат:")
+                print("кол-во спусков: " + str(grade))
+                text_message = "---игра окончена. результат:" + "кол-во спусков: " + str(grade)
+                return player, status, text_message
 
 
 def rest():
-    global player
+    global player, text_message
     player.hp = min(player.maxhp, player.hp + 10)
-    print("---безопасное место. вы воссстановили часть здоровья", file=TextWrapper(text))
+    print("безопасное место. вы восстановили часть здоровья")
+    text_message = "---безопасное место"
     update()
-    return player
+    return player, text_message
 
 
 # функция ловушки
 def trap():
-    global player
+    global player, text_message
     player.hp -= 10
-    print("---it's a trap!. Вы потеряли часть здоровья", file=TextWrapper(text))
+    print("it's a trap! Вы потеряли часть здоровья")
+    text_message = "---it's a trap!"
     update()
-    return player
+    return player, text_message
 
 
 def down():
-    global status, level, act
+    global status, level, act, text_message
     status = "подземелье"
-    delbotton()
-    btn_down.grid()
-    btn_up.grid()
-    print("-", file=TextWrapper(text))
+    print("-")
     f = random.choices([fight, rest, trap], weights=[5, 1, 1])
     rand_func = random.choice(f)
     rand_func()
     level += 1
     update()
-    return level, status
+    return level, status, text_message
 
 
 def up():
-    global status, level, grade, player, player_hp
-    delbotton()
-    btn_down.grid(row=0, column=0)
-    btn_up.grid(row=1, column=0)
+    global status, level, grade, player, player_hp, text_message
+
     if level == 0:
         status = "вы в лагере"
         update()
     elif level > 1:
         level -= 1
         update()
-        print("---вы возвращаетесь в лагерь", file=TextWrapper(text))
+        print("---вы возвращаетесь в лагерь")
+        text_message = "---вы возвращаетесь в лагерь"
         f = random.choices([fight, rest, trap], weights=[1, 7, 1])
         rand_func = random.choice(f)
         rand_func()
         update()
-        return level
+        return level, text_message
     else:
         level = 0
         grade += 1
         status = "вы в лагере"
-        delbotton()
-        btn_down.grid(row=0, column=0)
-        btn_market.grid(row=1, column=0)
+
         player.hp = min(player.maxhp, player.hp + 20)
-        print("---вы вернулись. Оно того стоило?", file=TextWrapper(text))
+        print("---вы вернулись. Оно того стоило?")
+        text_message = "---вы вернулись. Оно того стоило?"
         update()
-        return status, grade
+        return status, grade, text_message
 
 
 def market():
     global status, act, gold, player, player_hp
     status = "магазин"
-    delbotton()
-    btn_down.grid(row=0, column=0)
-    btn_buy.grid(row=1, column=0)
+
     update()
     class item:
         def __init__(self, name, maxhp, hp, dmg, arm, pen, price):
@@ -183,171 +176,355 @@ def market():
         }
 
     #    for key, value in select.items(): print(key, ':', vars(value))  эта строка была нужна чтобы вывести список предметов с атрибутами
-    for key, value in productlist.items(): print(key, ':', value, file=TextWrapper(text))
+    for key, value in productlist.items(): print(key, ':', value)
     select_item = select[int(entry.get())]
     #на этом этапе в консоль выводится ошибка, так как сразу считывается ввод из entry, а он на момент запуска пустой. На работу не влияет
     if int(select_item.price) > gold:
-        print("Недостаточно золота", file=TextWrapper(text))
+        print("Недостаточно золота")
     else:
-        print("Куплен " + str(select_item.name), file=TextWrapper(text))
+        print("Куплен " + str(select_item.name))
         gold -= select_item.price
         player.maxhp += select_item.maxhp
         player.hp = min(player.maxhp, player.hp + select_item.hp)
         player.dmg += select_item.dmg
         player.arm += select_item.arm
         player.pen += select_item.pen
-        print(vars(player), file=indicatorWrapper(indicator))
+        print(vars(player))
         return status, player, gold
 
 
 
+#это необходимо для инициализации всех вложенных модулей
+pygame.init()
 
-#основное окно
-root = Tk()
-root.geometry("1600x600")
-root.title("Игра")
+#окно программы
+screen = pygame.display.set_mode((1200, 1000))
 
-#команда для вывода текста на экран. в нее передается текст из функций в print:
-
-#параметры игрока
-class indicatorWrapper:
-    def __init__(self, indicator_field: Text):
-        self.indicator_field = indicator_field
-
-    def write(self, indicator: str):
-        self.indicator_field.insert(END, indicator)
-        self.indicator_field.yview(END)
-
-    def flush(self):
-        self.indicator_field.update()
-# создает поле текста. 1я команда создает поле. 2я выводит его на экран
-indicator = Text(root, width=30, height=2)
-indicator.pack(side=TOP, fill=BOTH)
-
-
-#общее поле
-class TextWrapper:
-    def __init__(self, text_field: Text):
-        self.text_field = text_field
-
-    def write(self, text: str):
-        self.text_field.insert(END, text)
-        self.text_field.yview(END)
-
-    def flush(self):
-        self.text_field.update()
-text = Text(root, width=1000, height=20)
-text.pack(side=LEFT, fill=BOTH, expand=1)
-
-#text.pack(side=TOP, fill=BOTH)
-#text.place(x=0, y=0)
-
-
-#поле для показателей
-labelpacktk = Label(root, width=10, height=20, bg='gray')
-labelpacktk.pack(side=TOP)
-
-class levelWrapper:
-    def __init__(self, level_field: Text):
-        self.level_field = level_field
-
-    def write(self, leveltk: str):
-        self.level_field.insert(END, leveltk)
-        self.level_field.yview(END)
-
-    def flush(self):
-        self.level_field.update()
-leveltkLabel = Label(labelpacktk, text = "Уровень подземелья: ", bg='gray')
-leveltkLabel.grid(row=1, column=0)
-leveltk = Text(labelpacktk, width=20, height=2)
-leveltk.grid(row=1, column=1)
+#Это просто объект для проверки коллизий. В нем нельзя ничего делать. Он нужен только для удобства
+main = pygame.Rect(50, 50, 800, 900)
+pygame.draw.rect(screen, (255, 0, 0), main, 0)
 
 
 
-class goldWrapper:
-    def __init__(self, gold_field: Text):
-        self.gold_field = gold_field
-
-    def write(self, goldtk: str):
-        self.gold_field.insert(END, goldtk)
-        self.gold_field.yview(END)
-
-    def flush(self):
-        self.gold_field.update()
-goldtkLabel = Label(labelpacktk, text = "Золото: ", bg='gray')
-goldtkLabel.grid(row=2, column=0)
-goldtk = Text(labelpacktk, width=20, height=2)
-goldtk.grid(row=2, column=1)
+#Функция для отображения текста. Можно это прописывать при каждой передаче текста на экран. Но эту функция позволяет унифицировать процесс
+#при передаче текстасоздаются только переменные положения текста и сам текст
+def print_text(message, print_text_x, print_text_y, font_color = (180, 0, 0), font_type = None, font_size = 40):
+    font_type = pygame.font.Font(font_type, font_size)
+    text = font_type.render(message, True, font_color)
+    screen.blit(text, (print_text_x, print_text_y))
 
 
+#_________________________________________________________________________________________________________________________________________________
 
-class statusWrapper:
-    def __init__(self, status_field: Text):
-        self.status_field = status_field
+#скрытая кнопка.
+battom_dark_x = 999999
+battom_dark_y = 999999
 
-    def write(self, statustk: str):
-        self.status_field.insert(END, statustk)
-        self.status_field.yview(END)
+#battom1
+battom1_x = 900
+battom1_y = 100
 
-    def flush(self):
-        self.status_field.update()
-statustkLabel = Label(labelpacktk, text = "Положение: ", bg='gray')
-statustkLabel.grid(row=3, column=0)
-statustk = Text(labelpacktk, width=20, height=2, wrap="word")
-statustk.grid(row=3, column=1)
+#battom2
+battom2_x = 900
+battom2_y = 160
 
+#battom3
+battom3_x = 900
+battom3_y = 220
 
+#battom4
+battom4_x = 900
+battom4_y = 280
 
-
-
-#создает скролл. root - размещен в основном окне, text.yview - скроллит поле текста text.pack()
-scroll = Scrollbar(text, command=text.yview)
-scroll.pack(side=RIGHT, fill=Y)
-
-#это нужно для того чтобы размеры скрола подстраивались под окно. Чисто визуал и удобство
-text.config(yscrollcommand = scroll.set)
-
-
-
-#поле для кнопок
-buttonpacktk = Label(root, width=30, height=20, bg='blue')
-buttonpacktk.pack(side=TOP)
+#_________________________________________________________________________________________________________________________________________________
 
 #кнопки
-btn_fight = Button(buttonpacktk, width=15,text = "fight", command = fight)
-#btn_fight.grid(row=0, column=0)
-
-btn_down = Button(buttonpacktk, width=15,text = "down", command = down)
-btn_down.grid(row=1, column=0)
-
-btn_up = Button(buttonpacktk, width=15,text = "up", command = up)
-#btn_up.grid(row=2, column=0)
-
-btn_market = Button(buttonpacktk, width=15, text = "market", command = market)
-btn_market.grid(row=2, column=0)
+def battom_blok():
+    battom_blok = pygame.Rect(880, 50, 300, 900)
+    pygame.draw.rect(screen, (255, 0, 255), battom_blok, 0)
+battom_blok()
 
 
+#размеры кнопок
+battom_x = 250
+battom_y = 50
 
-#функция для удаления всех кнопок
-def delbotton():
-    btn_fight.grid_remove()
-    btn_down.grid_remove()
-    btn_up.grid_remove()
-    btn_market.grid_remove()
-    btn_buy.grid_remove()
+battom_blok_x = 900
+battom_blok_y = 100
 
 
-#Поле для ввода
-entry = Entry(width=15)
-entry.pack(anchor=N, padx=6, pady=6)
-btn_buy = Button(buttonpacktk, width=15, text = "buy", command = market)
-#btn_buy.grid(row=3, column=0)
+    #кнопка вниз
+battom_down_x = battom1_x
+battom_down_y = battom1_y
+battom_down = pygame.Rect(battom_down_x, battom_down_y, battom_x, battom_y)
+pygame.draw.rect(screen, (0, 255, 0), battom_down, 0)
+def battom_down():
+    battom_down = pygame.Rect(battom_down_x, battom_down_y, battom_x, battom_y)
+    pygame.draw.rect(screen, (0, 255, 0), battom_down, 0)
 
-#поле для кнопки "выход"
-exitpacktk = Label(root, width=30, height=20, bg='green')
-exitpacktk.pack(side=BOTTOM)
+    message = "down"
+    print_text_x = battom_down_x + 10
+    print_text_y = battom_down_y + 10
+    print_text(message, print_text_x, print_text_y)
+battom_down()
 
-btn_exit = Button(exitpacktk, width=15, text = "закрыть", command = quit)
-btn_exit.grid(row=0, column=0)
+    #кнопка вверх
+battom_up_x = battom_dark_x
+battom_up_y = battom_dark_y
+battom_up = pygame.Rect(battom_up_x, battom_up_y, battom_x, battom_y)
+pygame.draw.rect(screen, (0, 255, 0), battom_up, 0)
+def battom_up():
+    battom_up = pygame.Rect(battom_up_x, battom_up_y, battom_x, battom_y)
+    pygame.draw.rect(screen, (0, 255, 0), battom_up, 0)
 
-root.mainloop()
+    message = "up"
+    print_text_x = battom_up_x + 10
+    print_text_y = battom_up_y + 10
+    print_text(message, print_text_x, print_text_y)
+battom_up()
+
+    #кнопка магазин
+battom_market_x = battom2_x
+battom_market_y = battom2_y
+battom_market = pygame.Rect(battom_market_x, battom_market_y, battom_x, battom_y)
+pygame.draw.rect(screen, (0, 255, 0), battom_market, 0)
+def battom_market():
+    battom_market = pygame.Rect(battom_market_x, battom_market_y, battom_x, battom_y)
+    pygame.draw.rect(screen, (0, 255, 0), battom_market, 0)
+
+    message = "market"
+    print_text_x = battom_market_x + 10
+    print_text_y = battom_market_y + 10
+    print_text(message, print_text_x, print_text_y)
+battom_market()
+
+    #кнопка выход
+battom_exit_x = battom4_x
+battom_exit_y = battom4_y
+battom_exit = pygame.Rect(battom_exit_x, battom_exit_y, battom_x, battom_y)
+pygame.draw.rect(screen, (0, 255, 0), battom_exit, 0)
+def battom_exit():
+    battom_exit = pygame.Rect(battom_exit_x, battom_exit_y, battom_x, battom_y)
+    pygame.draw.rect(screen, (0, 255, 0), battom_exit, 0)
+
+    message = "exit"
+    print_text_x = battom_exit_x + 10
+    print_text_y = battom_exit_y + 10
+    print_text(message, print_text_x, print_text_y)
+battom_exit()
+
+
+
+def upgrade_battom():
+    battom_blok()
+    battom_down()
+    battom_up()
+    battom_market()
+    battom_exit()
+
+
+
+
+
+#_________________________________________________________________________________________________________________________________________________
+
+
+
+#вывод параметров и данных
+
+#размеры этикеток
+label_x = 350
+label_y = 50
+
+#блок этикеток
+lebel_status_blok_x = 100
+lebel_status_blok_y = 100
+
+
+#этикетка статус
+#сама "этикетка" выводиться дважды. До функции, чтобы создать ее. И в самой функции чтобы каждый раз затирать текст в ней
+label_status_x = lebel_status_blok_x
+label_status_y = lebel_status_blok_y
+label_status = pygame.Rect(label_status_x, label_status_y, label_x, label_y)
+pygame.draw.rect(screen, (255, 255, 255), label_status, 0)
+def label_status():
+    label_status = pygame.Rect(label_status_x, label_status_y, label_x, label_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_status, 0)
+
+    message = status
+    print_text_x = label_status_x + 10
+    print_text_y = label_status_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+
+label_level_x = lebel_status_blok_x
+label_level_y = lebel_status_blok_y+60
+label_level = pygame.Rect(label_level_x, label_level_y, label_x, label_y)
+pygame.draw.rect(screen, (255, 255, 255), label_level, 0)
+def label_level():
+    label_level = pygame.Rect(label_level_x, label_level_y, label_x, label_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_level, 0)
+
+    message = "Уровень подземелья: " + str(level)
+    print_text_x = label_level_x + 10
+    print_text_y = label_level_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+
+label_gold_x = lebel_status_blok_x
+label_gold_y = lebel_status_blok_y+120
+label_gold = pygame.Rect(label_gold_x, label_gold_y, label_x, label_y)
+pygame.draw.rect(screen, (255, 255, 255), label_gold, 0)
+def label_gold():
+    label_gold = pygame.Rect(label_gold_x, label_gold_y, label_x, label_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_gold, 0)
+
+    message = "золото: "+ str(gold)
+    print_text_x = label_gold_x + 10
+    print_text_y = label_gold_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+
+label_message_x = lebel_status_blok_x
+label_message_y = lebel_status_blok_y+180
+label_message = pygame.Rect(label_message_x, label_message_y, label_x, label_y)
+pygame.draw.rect(screen, (255, 255, 255), label_message, 0)
+def label_message():
+    global text_message
+    label_message = pygame.Rect(label_message_x, label_message_y, label_x, label_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_message, 0)
+    message = text_message
+    print_text_x = label_message_x + 10
+    print_text_y = label_message_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+
+#_________________________________________________________________________________________________________________________________________________
+#размеры этикеток персонажа
+person_x = 150
+person_y = 50
+
+#положение этикеток персонажа
+label_player_blok_x = 100
+label_player_blok_y = 500
+
+label_player_hp_x = label_player_blok_x
+label_player_hp_y = label_player_blok_y
+label_player_hp = pygame.Rect(label_player_hp_x, label_player_hp_y, person_x, person_y)
+pygame.draw.rect(screen, (255, 255, 255), label_player_hp, 0)
+def label_player_hp():
+    label_player_hp = pygame.Rect(label_player_hp_x, label_player_hp_y, person_x, person_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_player_hp, 0)
+
+    message = str(player.maxhp)+"/"+str(player.hp)
+    print_text_x = label_player_hp_x + 10
+    print_text_y = label_player_hp_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+label_player_dmg_x = label_player_blok_x
+label_player_dmg_y = label_player_blok_y+60
+label_player_dmg = pygame.Rect(label_player_dmg_x, label_player_dmg_y, person_x, person_y)
+pygame.draw.rect(screen, (255, 255, 255), label_player_dmg, 0)
+def label_player_dmg():
+    label_player_dmg = pygame.Rect(label_player_dmg_x, label_player_dmg_y, person_x, person_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_player_dmg, 0)
+
+    message = str(player.dmg)
+    print_text_x = label_player_dmg_x + 10
+    print_text_y = label_player_dmg_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+label_player_pen_x = label_player_blok_x
+label_player_pen_y = label_player_blok_y+120
+label_player_pen = pygame.Rect(label_player_pen_x, label_player_pen_y, person_x, person_y)
+pygame.draw.rect(screen, (255, 255, 255), label_player_pen, 0)
+def label_player_pen():
+    label_player_pen = pygame.Rect(label_player_pen_x, label_player_pen_y, person_x, person_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_player_pen, 0)
+
+    message = str(player.pen)
+    print_text_x = label_player_pen_x + 10
+    print_text_y = label_player_pen_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+label_player_arm_x = label_player_blok_x
+label_player_arm_y = label_player_blok_y+180
+label_player_arm = pygame.Rect(label_player_arm_x, label_player_arm_y, person_x, person_y)
+pygame.draw.rect(screen, (255, 255, 255), label_player_arm, 0)
+def label_player_arm():
+    label_player_arm = pygame.Rect(label_player_arm_x, label_player_arm_y, person_x, person_y)
+    pygame.draw.rect(screen, (255, 255, 255), label_player_arm, 0)
+
+    message = str(player.arm)
+    print_text_x = label_player_arm_x + 10
+    print_text_y = label_player_arm_y + 10
+    print_text(message, print_text_x, print_text_y)
+
+
+#обновление экрана
+def update():
+    global gold, player, level, status
+    label_status()
+    label_level()
+    label_gold()
+    label_message()
+
+    label_player_hp()
+    label_player_dmg()
+    label_player_pen()
+    label_player_arm()
+
+    upgrade_battom()
+
+    return gold, player, level, status
+
+#_________________________________________________________________________________________________________________________________________________
+#цикл игры
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        #запуск функции по нажатию кнопок
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            #выход
+            if event.pos[0] > battom_exit_x and event.pos[0] < (battom_exit_x+battom_x) and event.pos[1] > battom_exit_y and event.pos[1] < (battom_exit_y+battom_y):
+                pygame.quit()
+                sys.exit()
+            #вниз
+            elif event.pos[0] > battom_down_x and event.pos[0] < (battom_down_x+battom_x) and event.pos[1] > battom_down_y and event.pos[1] < (battom_down_y+battom_y):
+                down()
+                #смена позиций кнопок
+
+                battom_up_x = battom2_x
+                battom_up_y = battom2_y
+
+
+                battom_market_x = battom_dark_x
+                battom_market_y = battom_dark_y
+
+                upgrade_battom()
+
+                #вверх
+            elif event.pos[0] > battom_up_x and event.pos[0] < (battom_up_x+battom_x) and event.pos[1] > battom_up_y and event.pos[1] < (battom_up_y+battom_y):
+                up()
+            #магазин
+            elif event.pos[0] > battom_market_x and event.pos[0] < (battom_market_x+battom_x) and event.pos[1] > battom_market_y and event.pos[1] < (battom_market_y+battom_y):
+                market()
+        elif level == 0:
+
+            battom_up_x = battom_dark_x
+            battom_up_y = battom_dark_y
+
+            battom_market_x = battom2_x
+            battom_market_y = battom2_y
+
+            upgrade_battom()
+    pygame.display.flip()
