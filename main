@@ -48,7 +48,6 @@ def dijkstra(start, goal, graph):
     heappush(queue, (0, start))
     cost_visited = {start: 0}
     visited = {start: None}
-
     while queue:
         cur_cost, cur_node = heappop(queue)
         if cur_cost > speed:
@@ -197,6 +196,9 @@ queue = []
 heappush(queue, (0, start)) #это команда из библиотеки heapq. Изучить
 visited = {start: None} #словарь посещенных позиций. При поиске пути
 
+visited2 = {start: None} #словарь посещенных позиций. При поиске пути
+
+
 
 class person_position:
     def __init__(self, x, y, xx, yy, color):
@@ -256,14 +258,19 @@ def explore():
             xxx = field.get(str(tile_x) + "-" + str(tile_y)).x
             yyy = field.get(str(tile_x) + "-" + str(tile_y)).y
             if field.get(str(tile_x) + "-" + str(tile_y)).type == "stone":
-                pg.draw.rect(sc, GRAY, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1), TILE, TILE), 0)
+                bg = pg.image.load('medievalEnvironment_09.png').convert()
+                bg = pg.transform.scale(bg, (TILE, TILE))
+                sc.blit(bg, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
                 f1 = pg.font.Font(None, 24)
                 tx = grid[tile_y-1]
                 tx2 = tx[tile_x-1]
                 text1 = f1.render(str(tx2), 1, (180, 0, 0))
                 sc.blit(text1, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
             elif field.get(str(tile_x) + "-" + str(tile_y)).type == "tree":
-                pg.draw.rect(sc, ForestGreen, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1), TILE, TILE), 0)
+                bg = pg.image.load('medievalEnvironment_04.png').convert()
+                bg = pg.transform.scale(bg, (TILE, TILE))
+                sc.blit(bg, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
+
                 f1 = pg.font.Font(None, 24)
                 tx = grid[tile_y - 1]
                 tx2 = tx[tile_x - 1]
@@ -272,12 +279,17 @@ def explore():
 
 #создание пути передвижения
 def path():
-    global path_head, path_segment, visited
+    global path_head, path_segment, visited, start
     while path_segment and path_segment in visited:
         pg.draw.circle(sc, pg.Color('blue'), *get_circle(*path_segment))
         path_segment = visited[path_segment]
-        pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
         pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
+        pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
+
+        start = path_head
+    return start
+
+
 
 
 
@@ -285,6 +297,7 @@ def path():
 bg = pg.image.load('2.png').convert()
 bg = pg.transform.scale(bg, (cols * TILE, rows * TILE))
 while True:
+    pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
     explore()
     # pygame necessary lines
     for event in pg.event.get():
@@ -297,12 +310,6 @@ while True:
                 if mouse_pos:
                     goal = mouse_pos
                     visited = dijkstra(start, mouse_pos, graph)
-                    start = mouse_pos
-            if event.button == 3:
-                mouse_pos = get_click_mouse_pos2()
-                if mouse_pos:
-                    visited = dijkstra(start, mouse_pos, graph)
-                    goal = mouse_pos
 
 
 
