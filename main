@@ -1,530 +1,322 @@
-#что сделать:
-#сделать рынок. покупка через ввод пользователя
-#переделать интерфейс. Сделать удобным
-#битвы на карте чтобы выглядело как норм.геймплей
-
-
-
-#старая, рабочая версия в файле game архив
-
+import pygame as pg
+from heapq import *
 import random
-from tkinter import *
-from contextlib import redirect_stdout
-import pygame
 import sys
 
 
-
-class person:
-    def __init__(self, name, maxhp, hp, dmg, arm, pen):
-        self.name = name
-        self.maxhp = maxhp
-        self.hp = hp
-        self.dmg = dmg
-        self.arm = arm
-        self.pen = pen
+#это большой блок для отриссовки "змейки" и поиска пути. онять до конца как он работаю
+#функция создания круга для "змейки"
+def get_circle(x, y):
+    return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // 4
 
 
-# игрок
-player_hp = random.randint(170, 200)
-player_dmg = random.randint(7, 10)
-player_arm = random.randint(0, 3)
-player_pen = random.randint(0, 3)
+#определить соседние клетки
+def get_neighbours(x, y):
+    check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows else False
+    ways = [-1, 0], [0, -1], [1, 0], [0, 1]#, [-1, -1], [1, -1], [1, 1], [-1, 1]
+    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy)]
+    #(grid[y + dy][x + dx]) - эта команда определяет стоимость прохождения
 
-player = person("knight", player_hp, player_hp, player_dmg, player_arm, player_pen)
-
-# счетчики
-grade = 1
-level = 0
-gold = 9990
-
-#паузы в игре. например между раундами в битве
-time_wait = 0 #оптимальное время = 800.
-
-status = "Вы в лагере"
-text_message = "Вы в лагере"
+    #Если в конце x и y (или dx, dy) умножить на какое-то значение, это ограничивает длинну змейки. Понять как это работает, чтобы проверка была не на всей карте, а по нужной длинне
+    #dx*11 - означет что длинна уменьшиться на 11 от противоположного края
+    #dy*4 - означает что длинна уменьшиться на 3 от верхнего и нижнего края
 
 
-def fight():
-    global person, player, grade, level, gold, text_message, time_wait
-    enemy = person("monster", 0, random.randint(15, 20), random.randint(1, 3), random.randint(0, 1), random.randint(0, 1))
-    text_message = "сражение"
-    print("---сражение")
-    print(vars(enemy))
-    print("-")
-    r = 0
-    while True:
-        pygame.time.wait(time_wait)
-        if player.hp > 0 and enemy.hp > 0:
-            player.hp -= enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)
-            enemy.hp -= player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)
-            r += 1
-            print("раунд: ", r)
-            print(str(player.hp) + " (-" + str(enemy.dmg + random.randint(0, 7) + level + grade - max(player.arm - enemy.pen, 0)) + ")")
-            print(str(enemy.hp) + " (-" + str(player.dmg + random.randint(0, 7) - max(enemy.arm - player.pen, 0)) + ")")
-        else:
-            if player.hp > 0:
-                print("победа")
-                gold += (random.randint(3, 5) + level)
-                return gold, player
+
+def get_click_mouse_pos():
+    x, y = pg.mouse.get_pos()
+    grid_x, grid_y = x // TILE, y // TILE
+    pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y))
+    click = pg.mouse.get_pressed()
+    return (grid_x, grid_y) if click[0] else False
+
+def get_click_mouse_pos2():
+    x, y = pg.mouse.get_pos()
+    grid_x, grid_y = x // TILE, y // TILE
+    pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y))
+    click = pg.mouse.get_pressed()
+    return (grid_x, grid_y) if click[2] else False
+
+
+def heuristic(a, b):
+   return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+def dijkstra(start, goal, graph):
+    global speed
+    queue = []
+    heappush(queue, (0, start))
+    cost_visited = {start: 0}
+    visited = {start: None}
+
+    while queue:
+        cur_cost, cur_node = heappop(queue)
+        if cur_cost > speed:
+            break
+        if cur_node == goal:
+            break
+        neighbours = graph[cur_node]
+        for neighbour in neighbours:
+            #если сложность == 9, то она заменяется на 999
+            if neighbour[0] == 9:
+                neigh_cost, neigh_node = 999, neighbour[1]
             else:
-                print("поражение. Игра окончена")
-                status = "you died"
-                print("you died")
-                print("-")
-                print("---игра окончена. результат:")
-                print("кол-во спусков: " + str(grade))
-                text_message = "---игра окончена. результат:" + "кол-во спусков: " + str(grade)
-                return player, status, text_message
+                neigh_cost, neigh_node = neighbour
+            new_cost = cost_visited[cur_node] + neigh_cost
+
+            if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
+                priority = new_cost + heuristic(neigh_node, goal)
+                heappush(queue, (priority, neigh_node))
+                cost_visited[neigh_node] = new_cost
+                visited[neigh_node] = cur_node
+    return visited
 
 
-def rest():
-    global player, text_message
-    player.hp = min(player.maxhp, player.hp + 10)
-    print("безопасное место. вы восстановили часть здоровья")
-    text_message = "---безопасное место"
-    update()
-    return player, text_message
+
+#матрица проходимости. Каждое число - шкала X.
+grid = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',]
+
+cols, rows = 23, 13
+TILE = 50
+
+#начало поля. Это на будущее для общего смещения поля
+mainfield_X = 0
+mainfield_Y = 0
 
 
-# функция ловушки
-def trap():
-    global player, text_message
-    player.hp -= 10
-    print("it's a trap! Вы потеряли часть здоровья")
-    text_message = "---it's a trap!"
-    update()
-    return player, text_message
+#клетка
+class tile():
+    def __init__ (self, x, y, x_pos, y_pos, type, closed, diff):
+        self.x = x
+        self.y = y
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.type = type
+        self.closed = closed
+        self.diff = diff
+
+#типы клеток
+def none():
+    global field, x, y, xy, tile, grid
+    tile.type = "none"
+    tile.x_pos = mainfield_X + TILE * (tile.x - 1)
+    tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
+    tile.diff = 1
+    none = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "-", tile.diff)
+    print(str(xy) + ": " + str(vars(none)))
+    field[xy] = none
+    grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
+    return field, grid
+
+def tree():
+    global field, x, y, xy, tile, grid
+    tile.type = "tree"
+    tile.x_pos = mainfield_X + TILE * (tile.x - 1)
+    tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
+    tile.diff = 9
+    tree = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "+", tile.diff)
+    print(str(xy) + ": " + str(vars(tree)))
+    field[xy] = tree
+    grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
+    return field, grid
+
+def stone():
+    global field, x, y, xy, tile, grid
+    tile.type = "stone"
+    tile.x_pos = mainfield_X + TILE * (tile.x - 1)
+    tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
+    tile.diff = 2
+    stone = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "+", tile.diff)
+    print(str(xy) + ": " + str(vars(stone)))
+    field[xy]=stone
+    grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
+    return field, grid
 
 
-def down():
-    global status, level, act, text_message
-    status = "подземелье"
-    print("-")
-    f = random.choices([fight, rest, trap], weights=[5, 1, 1])
-    rand_func = random.choice(f)
-    rand_func()
-    level += 1
-    update()
-    return level, status, text_message
 
 
-def up():
-    global status, level, grade, player, player_hp, text_message
 
-    if level == 0:
-        status = "вы в лагере"
-        update()
-    elif level > 1:
-        level -= 1
-        update()
-        print("---вы возвращаетесь в лагерь")
-        text_message = "---вы возвращаетесь в лагерь"
-        f = random.choices([fight, rest, trap], weights=[1, 7, 1])
-        rand_func = random.choice(f)
-        rand_func()
-        update()
-        return level, text_message
-    else:
-        level = 0
-        grade += 1
-        status = "вы в лагере"
+#создание поля
+rnd_type = [none, tree, stone]
+tile.x=0
+tile.y=0
+xy = 0
+field = {
+}
+def create_battlefield(x,y):
+    global xy
+    for i in range(x):
+        tile.x += 1
+        tile.y = 0
+        for j in range(y):
+            tile.y += 1
+            xy = str(tile.x) + "-" + str(tile.y)
+            f = random.choices(rnd_type, weights=[5, 1, 1])
+            rand_func = random.choice(f)
+            rand_func()
 
-        player.hp = min(player.maxhp, player.hp + 20)
-        print("---вы вернулись. Оно того стоило?")
-        text_message = "---вы вернулись. Оно того стоило?"
-        update()
-        return status, grade, text_message
-
-
-def market():
-    global status, act, gold, player, player_hp
-    status = "магазин"
-
-    update()
-    class item:
-        def __init__(self, name, maxhp, hp, dmg, arm, pen, price):
-            self.name = name
-            self.maxhp = maxhp
-            self.hp = hp
-            self.dmg = dmg
-            self.arm = arm
-            self.pen = pen
-            self.price = price
-
-    item1 = item("might", 0, 0, 2, 0, 0, 50)
-    item2 = item("armor", 20, 20, 0, 0, 0, 50)
-    item3 = item("attack", 0, 0, 0, 1, 0, 50)
-    item4 = item("def", 0, 0, 0, 0, 1, 50)
-    item5 = item("heal", 0, 50, 0, 0, 0, 50)
-
-    select = {
-        1:item1,
-        2:item2,
-        3:item3,
-        4:item4,
-        5:item5,
-        }
-
-    productlist = {
-        "-": "Что хотите купить?",
-        1: "меч +" + str(item1.dmg),
-        2: "броня +" + str(item2.maxhp),
-        3: "тренировка защиты +" + str(item3.arm),
-        4: "тренировка атаки +" + str(item4.pen),
-        5: "лечение +" + str(item5.hp),
-        }
-
-    #    for key, value in select.items(): print(key, ':', vars(value))  эта строка была нужна чтобы вывести список предметов с атрибутами
-    for key, value in productlist.items(): print(key, ':', value)
-    select_item = select[int(entry.get())]
-    #на этом этапе в консоль выводится ошибка, так как сразу считывается ввод из entry, а он на момент запуска пустой. На работу не влияет
-    if int(select_item.price) > gold:
-        print("Недостаточно золота")
-    else:
-        print("Куплен " + str(select_item.name))
-        gold -= select_item.price
-        player.maxhp += select_item.maxhp
-        player.hp = min(player.maxhp, player.hp + select_item.hp)
-        player.dmg += select_item.dmg
-        player.arm += select_item.arm
-        player.pen += select_item.pen
-        print(vars(player))
-        return status, player, gold
+#перезагрузка поля
+def reset_battlefield():
+    global tile, xy, field
+    tile.x = 0
+    tile.y = 0
+    xy = 0
+    field = {
+    }
+    return tile, xy, field
 
 
+
+
+#отрисовка поля. Общий старт
+create_battlefield(cols, rows)
 
 #это необходимо для инициализации всех вложенных модулей
-pygame.init()
+pg.init()
 
 #окно программы
-screen = pygame.display.set_mode((1200, 1000))
-
-#Это просто объект для проверки коллизий. В нем нельзя ничего делать. Он нужен только для удобства
-main = pygame.Rect(50, 50, 800, 900)
-pygame.draw.rect(screen, (255, 0, 0), main, 0)
-
-
-
-#Функция для отображения текста. Можно это прописывать при каждой передаче текста на экран. Но эту функция позволяет унифицировать процесс
-#при передаче текстасоздаются только переменные положения текста и сам текст
-def print_text(message, print_text_x, print_text_y, font_color = (180, 0, 0), font_type = None, font_size = 40):
-    font_type = pygame.font.Font(font_type, font_size)
-    text = font_type.render(message, True, font_color)
-    screen.blit(text, (print_text_x, print_text_y))
-
-
-#_________________________________________________________________________________________________________________________________________________
-
-#скрытая кнопка.
-battom_dark_x = 999999
-battom_dark_y = 999999
-
-#battom1
-battom1_x = 900
-battom1_y = 100
-
-#battom2
-battom2_x = 900
-battom2_y = 160
+sc = pg.display.set_mode((1800, 1200))
+clock = pg.time.Clock()
+
+
+grid = [[int(char) for char in string] for string in grid]
+# adjacency dict
+graph = {}
+#enumerate() . Если range() позволяет получить только индексы элементов списка, то enumerate() – сразу индекс элемента и его значение.
+for y, row in enumerate(grid):
+    for x, col in enumerate(row):
+        graph[(x, y)] = graph.get((x, y), []) + get_neighbours(x, y)
+
+
+speed = 10
+
+#посещенная позиция
+start = (0, 7)
+goal = start
+queue = []
+heappush(queue, (0, start)) #это команда из библиотеки heapq. Изучить
+visited = {start: None} #словарь посещенных позиций. При поиске пути
+
+
+class person_position:
+    def __init__(self, x, y, xx, yy, color):
+        self.x = x
+        self.y = y
+        self.xx = xx
+        self.yy = yy
+        self.color = color
+
+#позиция персонажа
+start_pos_x = mainfield_X
+start_pos_y = mainfield_Y
+
+player_position = person_position(start_pos_x, start_pos_y, TILE, TILE, (22, 22, 22))
+enemy_position = person_position(start_pos_x, start_pos_y, TILE, TILE, (55, 55, 55))
+
+
+#заполнение клетки
+def person_position(x, y, xx, yy, color):
+    pygame.draw.rect(screen, color, (x, y, xx, yy), 0)
+
+
+
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (125, 125, 125)
+LIGHT_BLUE = (64, 128, 255)
+GREEN = (0, 200, 64)
+YELLOW = (225, 225, 0)
+PINK = (230, 50, 230)
+ForestGreen = (34, 139, 34)
+
+
+
+
+def explore():
+    global TILE, cols, rows, mainfield_X, mainfield_Y
+    tile_x = 0
+    tile_y = 0
+
+    mainfield_X_end = mainfield_X + cols * TILE
+    mainfield_Y_end = mainfield_Y + rows * TILE
+
+    main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
+    pg.draw.rect(sc, (GREEN), main, 0)
+
+    for i in range(0, int(rows)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
+    for j in range(0, int(cols)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
+    for t in range(cols):
+        tile_x += 1
+        tile_y = 0
+        for r in range(rows):
+            tile_y += 1
+            xxx = field.get(str(tile_x) + "-" + str(tile_y)).x
+            yyy = field.get(str(tile_x) + "-" + str(tile_y)).y
+            if field.get(str(tile_x) + "-" + str(tile_y)).type == "stone":
+                pg.draw.rect(sc, GRAY, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1), TILE, TILE), 0)
+                f1 = pg.font.Font(None, 24)
+                tx = grid[tile_y-1]
+                tx2 = tx[tile_x-1]
+                text1 = f1.render(str(tx2), 1, (180, 0, 0))
+                sc.blit(text1, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
+            elif field.get(str(tile_x) + "-" + str(tile_y)).type == "tree":
+                pg.draw.rect(sc, ForestGreen, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1), TILE, TILE), 0)
+                f1 = pg.font.Font(None, 24)
+                tx = grid[tile_y - 1]
+                tx2 = tx[tile_x - 1]
+                text1 = f1.render(str(tx2), 1, (180, 0, 0))
+                sc.blit(text1, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
+
+#создание пути передвижения
+def path():
+    global path_head, path_segment, visited
+    while path_segment and path_segment in visited:
+        pg.draw.circle(sc, pg.Color('blue'), *get_circle(*path_segment))
+        path_segment = visited[path_segment]
+        pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
+        pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
 
-#battom3
-battom3_x = 900
-battom3_y = 220
 
-#battom4
-battom4_x = 900
-battom4_y = 280
 
-#_________________________________________________________________________________________________________________________________________________
 
-#кнопки
-def battom_blok():
-    battom_blok = pygame.Rect(880, 50, 300, 900)
-    pygame.draw.rect(screen, (255, 0, 255), battom_blok, 0)
-battom_blok()
-
-
-#размеры кнопок
-battom_x = 250
-battom_y = 50
-
-battom_blok_x = 900
-battom_blok_y = 100
-
-
-    #кнопка вниз
-battom_down_x = battom1_x
-battom_down_y = battom1_y
-battom_down = pygame.Rect(battom_down_x, battom_down_y, battom_x, battom_y)
-pygame.draw.rect(screen, (0, 255, 0), battom_down, 0)
-def battom_down():
-    battom_down = pygame.Rect(battom_down_x, battom_down_y, battom_x, battom_y)
-    pygame.draw.rect(screen, (0, 255, 0), battom_down, 0)
-
-    message = "down"
-    print_text_x = battom_down_x + 10
-    print_text_y = battom_down_y + 10
-    print_text(message, print_text_x, print_text_y)
-battom_down()
-
-    #кнопка вверх
-battom_up_x = battom_dark_x
-battom_up_y = battom_dark_y
-battom_up = pygame.Rect(battom_up_x, battom_up_y, battom_x, battom_y)
-pygame.draw.rect(screen, (0, 255, 0), battom_up, 0)
-def battom_up():
-    battom_up = pygame.Rect(battom_up_x, battom_up_y, battom_x, battom_y)
-    pygame.draw.rect(screen, (0, 255, 0), battom_up, 0)
-
-    message = "up"
-    print_text_x = battom_up_x + 10
-    print_text_y = battom_up_y + 10
-    print_text(message, print_text_x, print_text_y)
-battom_up()
-
-    #кнопка магазин
-battom_market_x = battom2_x
-battom_market_y = battom2_y
-battom_market = pygame.Rect(battom_market_x, battom_market_y, battom_x, battom_y)
-pygame.draw.rect(screen, (0, 255, 0), battom_market, 0)
-def battom_market():
-    battom_market = pygame.Rect(battom_market_x, battom_market_y, battom_x, battom_y)
-    pygame.draw.rect(screen, (0, 255, 0), battom_market, 0)
-
-    message = "market"
-    print_text_x = battom_market_x + 10
-    print_text_y = battom_market_y + 10
-    print_text(message, print_text_x, print_text_y)
-battom_market()
-
-    #кнопка выход
-battom_exit_x = battom4_x
-battom_exit_y = battom4_y
-battom_exit = pygame.Rect(battom_exit_x, battom_exit_y, battom_x, battom_y)
-pygame.draw.rect(screen, (0, 255, 0), battom_exit, 0)
-def battom_exit():
-    battom_exit = pygame.Rect(battom_exit_x, battom_exit_y, battom_x, battom_y)
-    pygame.draw.rect(screen, (0, 255, 0), battom_exit, 0)
-
-    message = "exit"
-    print_text_x = battom_exit_x + 10
-    print_text_y = battom_exit_y + 10
-    print_text(message, print_text_x, print_text_y)
-battom_exit()
-
-
-
-def upgrade_battom():
-    battom_blok()
-    battom_down()
-    battom_up()
-    battom_market()
-    battom_exit()
-
-
-
-
-
-#_________________________________________________________________________________________________________________________________________________
-
-
-
-#вывод параметров и данных
-
-#размеры этикеток
-label_x = 350
-label_y = 50
-
-#блок этикеток
-lebel_status_blok_x = 100
-lebel_status_blok_y = 100
-
-
-#этикетка статус
-#сама "этикетка" выводиться дважды. До функции, чтобы создать ее. И в самой функции чтобы каждый раз затирать текст в ней
-label_status_x = lebel_status_blok_x
-label_status_y = lebel_status_blok_y
-label_status = pygame.Rect(label_status_x, label_status_y, label_x, label_y)
-pygame.draw.rect(screen, (255, 255, 255), label_status, 0)
-def label_status():
-    label_status = pygame.Rect(label_status_x, label_status_y, label_x, label_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_status, 0)
-
-    message = status
-    print_text_x = label_status_x + 10
-    print_text_y = label_status_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-
-label_level_x = lebel_status_blok_x
-label_level_y = lebel_status_blok_y+60
-label_level = pygame.Rect(label_level_x, label_level_y, label_x, label_y)
-pygame.draw.rect(screen, (255, 255, 255), label_level, 0)
-def label_level():
-    label_level = pygame.Rect(label_level_x, label_level_y, label_x, label_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_level, 0)
-
-    message = "Уровень подземелья: " + str(level)
-    print_text_x = label_level_x + 10
-    print_text_y = label_level_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-
-label_gold_x = lebel_status_blok_x
-label_gold_y = lebel_status_blok_y+120
-label_gold = pygame.Rect(label_gold_x, label_gold_y, label_x, label_y)
-pygame.draw.rect(screen, (255, 255, 255), label_gold, 0)
-def label_gold():
-    label_gold = pygame.Rect(label_gold_x, label_gold_y, label_x, label_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_gold, 0)
-
-    message = "золото: "+ str(gold)
-    print_text_x = label_gold_x + 10
-    print_text_y = label_gold_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-
-label_message_x = lebel_status_blok_x
-label_message_y = lebel_status_blok_y+180
-label_message = pygame.Rect(label_message_x, label_message_y, label_x, label_y)
-pygame.draw.rect(screen, (255, 255, 255), label_message, 0)
-def label_message():
-    global text_message
-    label_message = pygame.Rect(label_message_x, label_message_y, label_x, label_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_message, 0)
-    message = text_message
-    print_text_x = label_message_x + 10
-    print_text_y = label_message_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-
-#_________________________________________________________________________________________________________________________________________________
-#размеры этикеток персонажа
-person_x = 150
-person_y = 50
-
-#положение этикеток персонажа
-label_player_blok_x = 100
-label_player_blok_y = 500
-
-label_player_hp_x = label_player_blok_x
-label_player_hp_y = label_player_blok_y
-label_player_hp = pygame.Rect(label_player_hp_x, label_player_hp_y, person_x, person_y)
-pygame.draw.rect(screen, (255, 255, 255), label_player_hp, 0)
-def label_player_hp():
-    label_player_hp = pygame.Rect(label_player_hp_x, label_player_hp_y, person_x, person_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_player_hp, 0)
-
-    message = str(player.maxhp)+"/"+str(player.hp)
-    print_text_x = label_player_hp_x + 10
-    print_text_y = label_player_hp_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-label_player_dmg_x = label_player_blok_x
-label_player_dmg_y = label_player_blok_y+60
-label_player_dmg = pygame.Rect(label_player_dmg_x, label_player_dmg_y, person_x, person_y)
-pygame.draw.rect(screen, (255, 255, 255), label_player_dmg, 0)
-def label_player_dmg():
-    label_player_dmg = pygame.Rect(label_player_dmg_x, label_player_dmg_y, person_x, person_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_player_dmg, 0)
-
-    message = str(player.dmg)
-    print_text_x = label_player_dmg_x + 10
-    print_text_y = label_player_dmg_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-label_player_pen_x = label_player_blok_x
-label_player_pen_y = label_player_blok_y+120
-label_player_pen = pygame.Rect(label_player_pen_x, label_player_pen_y, person_x, person_y)
-pygame.draw.rect(screen, (255, 255, 255), label_player_pen, 0)
-def label_player_pen():
-    label_player_pen = pygame.Rect(label_player_pen_x, label_player_pen_y, person_x, person_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_player_pen, 0)
-
-    message = str(player.pen)
-    print_text_x = label_player_pen_x + 10
-    print_text_y = label_player_pen_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-label_player_arm_x = label_player_blok_x
-label_player_arm_y = label_player_blok_y+180
-label_player_arm = pygame.Rect(label_player_arm_x, label_player_arm_y, person_x, person_y)
-pygame.draw.rect(screen, (255, 255, 255), label_player_arm, 0)
-def label_player_arm():
-    label_player_arm = pygame.Rect(label_player_arm_x, label_player_arm_y, person_x, person_y)
-    pygame.draw.rect(screen, (255, 255, 255), label_player_arm, 0)
-
-    message = str(player.arm)
-    print_text_x = label_player_arm_x + 10
-    print_text_y = label_player_arm_y + 10
-    print_text(message, print_text_x, print_text_y)
-
-
-#обновление экрана
-def update():
-    global gold, player, level, status
-    label_status()
-    label_level()
-    label_gold()
-    label_message()
-
-    label_player_hp()
-    label_player_dmg()
-    label_player_pen()
-    label_player_arm()
-
-    upgrade_battom()
-
-    return gold, player, level, status
-
-#_________________________________________________________________________________________________________________________________________________
-#цикл игры
+bg = pg.image.load('2.png').convert()
+bg = pg.transform.scale(bg, (cols * TILE, rows * TILE))
 while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
+    explore()
+    # pygame necessary lines
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
             sys.exit()
-        #запуск функции по нажатию кнопок
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            #выход
-            if event.pos[0] > battom_exit_x and event.pos[0] < (battom_exit_x+battom_x) and event.pos[1] > battom_exit_y and event.pos[1] < (battom_exit_y+battom_y):
-                pygame.quit()
-                sys.exit()
-            #вниз
-            elif event.pos[0] > battom_down_x and event.pos[0] < (battom_down_x+battom_x) and event.pos[1] > battom_down_y and event.pos[1] < (battom_down_y+battom_y):
-                down()
-                #смена позиций кнопок
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                mouse_pos = get_click_mouse_pos()
+                if mouse_pos:
+                    goal = mouse_pos
+                    visited = dijkstra(start, mouse_pos, graph)
+                    start = mouse_pos
+            if event.button == 3:
+                mouse_pos = get_click_mouse_pos2()
+                if mouse_pos:
+                    visited = dijkstra(start, mouse_pos, graph)
+                    goal = mouse_pos
 
-                battom_up_x = battom2_x
-                battom_up_y = battom2_y
 
 
-                battom_market_x = battom_dark_x
-                battom_market_y = battom_dark_y
 
-                upgrade_battom()
+    # отрисовка линии
+    path_head = goal  # конец линии. Голова
+    path_segment = goal  # элементы линии. сегмент
+    path()
 
-                #вверх
-            elif event.pos[0] > battom_up_x and event.pos[0] < (battom_up_x+battom_x) and event.pos[1] > battom_up_y and event.pos[1] < (battom_up_y+battom_y):
-                up()
-            #магазин
-            elif event.pos[0] > battom_market_x and event.pos[0] < (battom_market_x+battom_x) and event.pos[1] > battom_market_y and event.pos[1] < (battom_market_y+battom_y):
-                market()
-        elif level == 0:
+    pg.display.flip()
+    clock.tick(30)
 
-            battom_up_x = battom_dark_x
-            battom_up_y = battom_dark_y
 
-            battom_market_x = battom2_x
-            battom_market_y = battom2_y
 
-            upgrade_battom()
-    pygame.display.flip()
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
