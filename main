@@ -12,9 +12,10 @@ def get_circle(x, y):
 
 #определить соседние клетки
 def get_neighbours(x, y):
-    check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows else False
+    check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows and grid[0][0] != 2 else False
     ways = [-1, 0], [0, -1], [1, 0], [0, 1]#, [-1, -1], [1, -1], [1, 1], [-1, 1]
-    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy)]
+    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != 9]
+
     #(grid[y + dy][x + dx]) - эта команда определяет стоимость прохождения
 
     #Если в конце x и y (или dx, dy) умножить на какое-то значение, это ограничивает длинну змейки. Понять как это работает, чтобы проверка была не на всей карте, а по нужной длинне
@@ -57,6 +58,29 @@ def dijkstra(start, goal, graph):
         neighbours = graph[cur_node]
         for neighbour in neighbours:
             #если сложность == 9, то она заменяется на 999
+            neigh_cost, neigh_node = neighbour
+            new_cost = cost_visited[cur_node] + neigh_cost
+
+            if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
+                priority = new_cost + heuristic(neigh_node, goal)
+                heappush(queue, (priority, neigh_node))
+                cost_visited[neigh_node] = new_cost
+                visited[neigh_node] = cur_node
+    return visited
+
+def dijkstra2(start, goal, graph):
+    global speed
+    queue = []
+    heappush(queue, (0, start))
+    cost_visited = {start: 0}
+    visited2 = {start: None}
+    while queue:
+        cur_cost, cur_node = heappop(queue)
+        if cur_node == goal:
+            break
+        neighbours = graph[cur_node]
+        for neighbour in neighbours:
+            #если сложность == 9, то она заменяется на 999
             if neighbour[0] == 9:
                 neigh_cost, neigh_node = 999, neighbour[1]
             else:
@@ -67,13 +91,16 @@ def dijkstra(start, goal, graph):
                 priority = new_cost + heuristic(neigh_node, goal)
                 heappush(queue, (priority, neigh_node))
                 cost_visited[neigh_node] = new_cost
-                visited[neigh_node] = cur_node
-    return visited
+                visited2[neigh_node] = cur_node
+    return visited2
+
 
 
 
 #матрица проходимости. Каждое число - шкала X.
 grid = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',]
+
+
 
 cols, rows = 23, 13
 TILE = 50
@@ -102,7 +129,7 @@ def none():
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
     tile.diff = 1
     none = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "-", tile.diff)
-    print(str(xy) + ": " + str(vars(none)))
+    #print(str(xy) + ": " + str(vars(none)))
     field[xy] = none
     grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
     return field, grid
@@ -114,7 +141,7 @@ def tree():
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
     tile.diff = 9
     tree = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "+", tile.diff)
-    print(str(xy) + ": " + str(vars(tree)))
+    #print(str(xy) + ": " + str(vars(tree)))
     field[xy] = tree
     grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
     return field, grid
@@ -126,10 +153,11 @@ def stone():
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
     tile.diff = 2
     stone = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "+", tile.diff)
-    print(str(xy) + ": " + str(vars(stone)))
+    #print(str(xy) + ": " + str(vars(stone)))
     field[xy]=stone
     grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
     return field, grid
+
 
 
 
@@ -187,6 +215,7 @@ for y, row in enumerate(grid):
         graph[(x, y)] = graph.get((x, y), []) + get_neighbours(x, y)
 
 
+
 speed = 10
 
 #посещенная позиция
@@ -218,7 +247,7 @@ enemy_position = person_position(start_pos_x, start_pos_y, TILE, TILE, (55, 55, 
 
 #заполнение клетки
 def person_position(x, y, xx, yy, color):
-    pygame.draw.rect(screen, color, (x, y, xx, yy), 0)
+    pg.draw.rect(sc, color, (x, y, xx, yy), 0)
 
 
 
@@ -231,6 +260,7 @@ GREEN = (0, 200, 64)
 YELLOW = (225, 225, 0)
 PINK = (230, 50, 230)
 ForestGreen = (34, 139, 34)
+RED = (255, 0, 0)
 
 
 
@@ -258,7 +288,7 @@ def explore():
             xxx = field.get(str(tile_x) + "-" + str(tile_y)).x
             yyy = field.get(str(tile_x) + "-" + str(tile_y)).y
             if field.get(str(tile_x) + "-" + str(tile_y)).type == "stone":
-                bg = pg.image.load('medievalEnvironment_09.png').convert()
+                bg = pg.image.load('rock1.png').convert()
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
                 f1 = pg.font.Font(None, 24)
@@ -267,10 +297,9 @@ def explore():
                 text1 = f1.render(str(tx2), 1, (180, 0, 0))
                 sc.blit(text1, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
             elif field.get(str(tile_x) + "-" + str(tile_y)).type == "tree":
-                bg = pg.image.load('medievalEnvironment_04.png').convert()
+                bg = pg.image.load('Tree1.png').convert()
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
-
                 f1 = pg.font.Font(None, 24)
                 tx = grid[tile_y - 1]
                 tx2 = tx[tile_x - 1]
@@ -278,6 +307,23 @@ def explore():
                 sc.blit(text1, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
 
 #создание пути передвижения
+
+
+
+#показывает путь без изменения позиции
+def path2():
+    global path_head, path_segment, visited2
+    while path_segment and path_segment in visited2:
+        pg.draw.circle(sc, pg.Color('RED'), *get_circle(*path_segment))
+        path_segment = visited2[path_segment]
+        pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
+        bg = pg.image.load('knight1.jpg').convert()
+        bg = pg.transform.scale(bg, (TILE, TILE))
+        sc.blit(bg, (start[0] * TILE, start[1] * TILE))
+
+
+
+#меняет позицию, если проверка прохождения была успешна
 def path():
     global path_head, path_segment, visited, start
     while path_segment and path_segment in visited:
@@ -285,17 +331,13 @@ def path():
         path_segment = visited[path_segment]
         pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
         pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
-
         start = path_head
+        bg = pg.image.load('knight1.jpg').convert()
+        bg = pg.transform.scale(bg, (TILE, TILE))
+        sc.blit(bg, (start[0]*TILE, start[1]*TILE))
     return start
 
 
-
-
-
-
-bg = pg.image.load('2.png').convert()
-bg = pg.transform.scale(bg, (cols * TILE, rows * TILE))
 while True:
     pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
     explore()
@@ -310,6 +352,7 @@ while True:
                 if mouse_pos:
                     goal = mouse_pos
                     visited = dijkstra(start, mouse_pos, graph)
+                    visited2 = dijkstra2(start, mouse_pos, graph)
 
 
 
@@ -318,6 +361,7 @@ while True:
     path_head = goal  # конец линии. Голова
     path_segment = goal  # элементы линии. сегмент
     path()
+    path2()
 
     pg.display.flip()
     clock.tick(30)
