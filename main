@@ -31,13 +31,20 @@ def get_click_mouse_pos():
     click = pg.mouse.get_pressed()
     return (grid_x, grid_y) if click[0] else False
 
+def get_mouse_pos():
+    x, y = pg.mouse.get_pos()
+    grid_x, grid_y = x // TILE, y // TILE
+    pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y))
+    return (grid_x, grid_y)
+
+
 
 
 def heuristic(a, b):
    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def dijkstra(start, goal, graph):
+def create_way(start, goal, graph):
     global speed
     queue = []
     heappush(queue, (0, start))
@@ -45,8 +52,6 @@ def dijkstra(start, goal, graph):
     visited = {start: None}
     while queue:
         cur_cost, cur_node = heappop(queue)
-        if cur_cost > speed:
-            break
         if cur_node == goal:
             break
         neighbours = graph[cur_node]
@@ -61,15 +66,15 @@ def dijkstra(start, goal, graph):
                 visited[neigh_node] = cur_node
     return visited
 
-def dijkstra2(goal, graph):
-    global speed, mouse_pos, start, tile, grid
+def change_pos(start_pos, end_pos, graph):
+    global speed, tile, grid, start
     queue = []
-    heappush(queue, (0, start))
-    cost_visited = {start: 0}
-    visited2 = {start: None}
+    heappush(queue, (0, start_pos))
+    cost_visited = {start_pos: 0}
+    visited2 = {start_pos: None}
     while queue:
         cur_cost, cur_node = heappop(queue)
-        if cur_node == goal:
+        if cur_node == end_pos:
             break
         neighbours = graph[cur_node]
         for neighbour in neighbours:
@@ -77,31 +82,31 @@ def dijkstra2(goal, graph):
             new_cost = cost_visited[cur_node] + neigh_cost
 
             if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
-                priority = new_cost + heuristic(neigh_node, goal)
+                priority = new_cost + heuristic(neigh_node, end_pos)
                 heappush(queue, (priority, neigh_node))
                 cost_visited[neigh_node] = new_cost
                 visited2[neigh_node] = cur_node
 
     keys = [key for key in cost_visited if cost_visited[key] >= int(speed)-1]
-    print(keys)
     try:
-        if grid[mouse_pos[1]] [mouse_pos[0]] != 9:
+        if grid[mouse_clik[1]] [mouse_clik[0]] != 9:
             try:
-                key1 = abs(keys[0][0] - mouse_pos[0]) + abs(keys[0][1] - mouse_pos[1])
-                key2 = abs(keys[1][0] - mouse_pos[0]) + abs(keys[1][1] - mouse_pos[1])
-                key3 = abs(keys[2][0] - mouse_pos[0]) + abs(keys[2][1] - mouse_pos[1])
+                key1 = abs(keys[0][0] - mouse_clik[0]) + abs(keys[0][1] - mouse_clik[1])
+                key2 = abs(keys[1][0] - mouse_clik[0]) + abs(keys[1][1] - mouse_clik[1])
+                key3 = abs(keys[2][0] - mouse_clik[0]) + abs(keys[2][1] - mouse_clik[1])
                 key123 = (key1, key2, key3)
                 if min(key123) == key1:
-                    start = keys[0]
+                    start_pos = keys[0]
                 elif min(key123) == key2:
-                    start = keys[1]
+                    start_pos = keys[1]
                 else:
-                    start = keys[2]
+                    start_pos = keys[2]
             except IndexError:
-                    start = mouse_pos
+                    start_pos = end_pos
     except IndexError:
         print('1111')
-    person_position(start)
+    person_position(start_pos)
+    start = start_pos
     return start
 
 
@@ -324,13 +329,7 @@ def explore():
 
 
 #показывает путь без изменения позиции
-def path2():
-    global path_head, path_segment, visited2
-    while path_segment and path_segment in visited2:
-        pg.draw.circle(sc, pg.Color('RED'), *get_circle(*path_segment))
-        path_segment = visited2[path_segment]
-        pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
-        pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
+
 
 
 
@@ -354,13 +353,16 @@ while True:
         if event.type == pg.QUIT:
             pg.quit()
             sys.exit()
+        elif event.type == pg.MOUSEMOTION:
+            mouse_move = get_mouse_pos()
+            goal = mouse_move
+            visited = create_way(start, mouse_move, graph)
         elif event.type == pg.MOUSEBUTTONDOWN:
             if event.button == 1:
-                mouse_pos = get_click_mouse_pos()
-                if mouse_pos:
-                    goal = mouse_pos
-                    visited = dijkstra(start, mouse_pos, graph)
-                    visited2 = dijkstra2(mouse_pos, graph)
+                mouse_clik = get_click_mouse_pos()
+                if mouse_clik:
+                    change_pos(start, mouse_clik, graph)
+
 
 
 
@@ -369,7 +371,7 @@ while True:
     path_head = goal  # конец линии. Голова
     path_segment = goal  # элементы линии. сегмент
     path()
-    path2()
+
 
     pg.display.flip()
     clock.tick(30)
@@ -379,3 +381,4 @@ while True:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             pg.quit()
+
