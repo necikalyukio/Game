@@ -330,6 +330,33 @@ def explore():
 
 #показывает путь без изменения позиции
 
+def cp():
+    way = []
+    global path_headd, path_segmentt, visited, start, grid
+    while path_segmentt and path_segmentt in visited:
+        path_segmentt = visited[path_segmentt]
+        way.append(path_segmentt)
+
+    way2 = way[:-1]
+    print(way2)
+    diff = 0
+    x = -2
+    for i in way2:
+        new_pos = way2[x]
+        diff += grid[way2[x][1]][way2[x][0]]
+        print(diff)
+        print(path_headd)
+        print(new_pos)
+        print(start)
+        print("-")
+        if diff >= speed:
+            start = new_pos
+        elif new_pos == way2[0]:
+            start = path_headd
+        else:
+            x -= 1
+
+    return start
 
 
 
@@ -360,14 +387,19 @@ while True:
         elif event.type == pg.MOUSEBUTTONDOWN:
             if event.button == 1:
                 mouse_clik = get_click_mouse_pos()
+                goall = mouse_clik
+                path_segmentt = goall
+                path_headd = goall
                 if mouse_clik:
-                    change_pos(start, mouse_clik, graph)
+                    cp()
 
 
 
 
 
     # отрисовка линии
+
+
     path_head = goal  # конец линии. Голова
     path_segment = goal  # элементы линии. сегмент
     path()
@@ -381,4 +413,3 @@ while True:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             pg.quit()
-
