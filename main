@@ -44,70 +44,43 @@ def heuristic(a, b):
    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
+# описание алгоритма на человеческом языке:
+# (start, goal, graph) - стартовая клетка (сначала именно старт, а потом клетка от которой идет текущий расчет), указанная клетка, полный список клеткок и их соседей + стоимость
+# graph - отдельно он использвет функцию get_neighbours. Перелопачивает все клетки с ценой (не сумма, а цена конкретной клетки)
+
+# в queue формируются маршруты - последние клетки с ценой по каждому из возможных направлений
+# из queue выбирается маршрут с наименьшей ценой и проверяются его соседи (цена соседей + цена посещеннйо клетки (cost_visited[cur_node] + neigh_cost)), после чего добавляются в queue
+# и так далее пока не будет достигнута финальня точка
+#формируется 2 сприска - общий cost_visited (в нем все пути) и финальный visited (в котором только кратчайший и выглядит он как словарь в котором ключ (клетка): значение (пред.клетка)
+
 def create_way(start, goal, graph):
     global speed
-    queue = []
-    heappush(queue, (0, start))
-    cost_visited = {start: 0}
-    visited = {start: None}
+    queue = [] #Это очередь. Или список приоритетных клеток. от которых далее идет расчет
+    heappush(queue, (0, start)) #эта команда добавляет в очередь queue стартовую клетку
+    cost_visited = {start: 0} #в этот справочник добавляются {координаты клетки: наименьшая цена пути до нее} {(0, 0): 0, (1, 0): 1, (0, 1): 1, (2, 0): 2, (1, 1): 2}
+    visited = {start: None} #а это итоговый маршрут. В нем первончальной клетка + соседи. Потом добавляется сосденяя с лучшей ценой + уже ее соседи. И так далее.
     while queue:
         cur_cost, cur_node = heappop(queue)
+        #heappop(queue) - возвращает наименьшее значение из queue
         if cur_node == goal:
             break
-        neighbours = graph[cur_node]
+        neighbours = graph[cur_node] #это проверяет соседние клетки
         for neighbour in neighbours:
             neigh_cost, neigh_node = neighbour
             new_cost = cost_visited[cur_node] + neigh_cost
-
             if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
-                priority = new_cost + heuristic(neigh_node, goal)
-                heappush(queue, (priority, neigh_node))
+                #на этом этапе:
+                #если новой клетки нет в списке посещенных (cost_visited)
+                #или она есть, но ее цена ниже чем она есть в списке посещенных
+                #то добавляется в список посещенных (cost_visited)
+                #и добавляется в список приоритетных (queue)
+                priority = new_cost + heuristic(neigh_node, goal) #heuristic - функция выше. Она выбирает клетку, которая ближе к той что выбрал пользователь (через сумму координат)
+                heappush(queue, (priority, neigh_node)) #это ф-ция из библиотеки heapq. Она добавляет элелент (priority (цена), neigh_node (координаты клетки)) в список queue
                 cost_visited[neigh_node] = new_cost
-                visited[neigh_node] = cur_node
+                visited[neigh_node] = cur_node #формирует итоговый маршрут который выглядит как справочник {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6)}
+                                               #(1, 5) - это ключ, по которому можно найти предмет - пред.клетку (1, 6)
+                                               #это и передается на выход
     return visited
-
-def change_pos(start_pos, end_pos, graph):
-    global speed, tile, grid, start
-    queue = []
-    heappush(queue, (0, start_pos))
-    cost_visited = {start_pos: 0}
-    visited2 = {start_pos: None}
-    while queue:
-        cur_cost, cur_node = heappop(queue)
-        if cur_node == end_pos:
-            break
-        neighbours = graph[cur_node]
-        for neighbour in neighbours:
-            neigh_cost, neigh_node = neighbour
-            new_cost = cost_visited[cur_node] + neigh_cost
-
-            if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
-                priority = new_cost + heuristic(neigh_node, end_pos)
-                heappush(queue, (priority, neigh_node))
-                cost_visited[neigh_node] = new_cost
-                visited2[neigh_node] = cur_node
-
-    keys = [key for key in cost_visited if cost_visited[key] >= int(speed)-1]
-    try:
-        if grid[mouse_clik[1]] [mouse_clik[0]] != 9:
-            try:
-                key1 = abs(keys[0][0] - mouse_clik[0]) + abs(keys[0][1] - mouse_clik[1])
-                key2 = abs(keys[1][0] - mouse_clik[0]) + abs(keys[1][1] - mouse_clik[1])
-                key3 = abs(keys[2][0] - mouse_clik[0]) + abs(keys[2][1] - mouse_clik[1])
-                key123 = (key1, key2, key3)
-                if min(key123) == key1:
-                    start_pos = keys[0]
-                elif min(key123) == key2:
-                    start_pos = keys[1]
-                else:
-                    start_pos = keys[2]
-            except IndexError:
-                    start_pos = end_pos
-    except IndexError:
-        print('1111')
-    person_position(start_pos)
-    start = start_pos
-    return start
 
 
 
@@ -239,7 +212,6 @@ goal = start
 queue = []
 heappush(queue, (0, start)) #это команда из библиотеки heapq. Изучить
 visited = {start: None} #словарь посещенных позиций. При поиске пути
-
 visited2 = {start: None} #словарь посещенных позиций. При поиске пути
 
 
@@ -310,57 +282,49 @@ def explore():
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
                 f1 = pg.font.Font(None, 24)
-                tx = grid[tile_y-1]
-                tx2 = tx[tile_x-1]
-                text1 = f1.render(str(tx2), 1, (180, 0, 0))
+                text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
                 sc.blit(text1, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
             elif field.get(str(tile_x) + "-" + str(tile_y)).type == "tree":
                 bg = pg.image.load('Tree1.png').convert()
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X+TILE*(xxx-1), mainfield_Y+TILE*(yyy-1)))
                 f1 = pg.font.Font(None, 24)
-                tx = grid[tile_y - 1]
-                tx2 = tx[tile_x - 1]
-                text1 = f1.render(str(tx2), 1, (180, 0, 0))
+                text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
                 sc.blit(text1, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
 
 #создание пути передвижения
 
-
-
-#показывает путь без изменения позиции
-
+#меняет позицию, если проверка прохождения была успешна
 def cp():
-    way = []
     global path_headd, path_segmentt, visited, start, grid
+    way = []
     while path_segmentt and path_segmentt in visited:
         path_segmentt = visited[path_segmentt]
+        #создаем путь
         way.append(path_segmentt)
-
+    #убираем из него последнее значение none
     way2 = way[:-1]
-    print(way2)
     diff = 0
     x = -2
+
+    #цикл определяет клетку в которой сумма сложностей пройенных клеток становится выше скорости. Или если финальная клетка равная новой
     for i in way2:
         new_pos = way2[x]
         diff += grid[way2[x][1]][way2[x][0]]
-        print(diff)
-        print(path_headd)
-        print(new_pos)
-        print(start)
-        print("-")
         if diff >= speed:
             start = new_pos
         elif new_pos == way2[0]:
             start = path_headd
         else:
             x -= 1
-
     return start
 
 
+# показывает путь без изменения позиции
+# простыми словами
+# visited - словарь с списком соседей {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6), (1, 7): (1, 6), (2, 7): (1, 7)}
+# в данном примере (2, 7) - это финальная точка. Цикл ниже перебирает клетки от ключа (2, 7) ищет привязанную к ней клетку (1, 7) и так далее пока не закончится.
 
-#меняет позицию, если проверка прохождения была успешна
 def path():
     global path_head, path_segment, visited
     while path_segment and path_segment in visited:
@@ -370,7 +334,7 @@ def path():
         pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
 
 
-
+#основной цикл
 while True:
     pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
     explore()
@@ -387,6 +351,7 @@ while True:
         elif event.type == pg.MOUSEBUTTONDOWN:
             if event.button == 1:
                 mouse_clik = get_click_mouse_pos()
+                #эти 3 строки переписать. Наверняка дублирует то что в самом низу
                 goall = mouse_clik
                 path_segmentt = goall
                 path_headd = goall
@@ -398,8 +363,6 @@ while True:
 
 
     # отрисовка линии
-
-
     path_head = goal  # конец линии. Голова
     path_segment = goal  # элементы линии. сегмент
     path()
