@@ -4,6 +4,30 @@ import random
 import sys
 
 
+
+#переменные
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (125, 125, 125)
+LIGHT_BLUE = (64, 128, 255)
+GREEN = (0, 200, 64)
+YELLOW = (225, 225, 0)
+PINK = (230, 50, 230)
+ForestGreen = (34, 139, 34)
+RED = (255, 0, 0)
+
+cols, rows = 23, 13 #количество клеток по горизонтали и вертикали
+TILE = 50 #размер клетки
+
+#временные переменные
+speed = 10 #нужна для теста переменещения. Потом заменить на скорость персонажей
+start = (0, 7) #стартовая позиция. Потом заменить на позицию при размещении персонажей
+
+#начало поля. Это на будущее для общего смещения поля
+mainfield_X = 0
+mainfield_Y = 0
+
+
 #функция создания круга для "змейки"
 def get_circle(x, y):
     return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // 4
@@ -37,16 +61,22 @@ def heuristic(a, b):
 
 
 # описание алгоритма на человеческом языке:
-# (start, goal, graph) - стартовая клетка (сначала именно старт, а потом клетка от которой идет текущий расчет), указанная клетка, полный список клеткок и их соседей + стоимость
-# graph - отдельно он использвет функцию get_neighbours. Перелопачивает все клетки с ценой (не сумма, а цена конкретной клетки)
+# (start, goal) - стартовая клетка (сначала именно старт, а потом клетка от которой идет текущий расчет), указанная клетка
 
 # в queue формируются маршруты - последние клетки с ценой по каждому из возможных направлений
 # из queue выбирается маршрут с наименьшей ценой и проверяются его соседи (цена соседей + цена посещеннйо клетки (cost_visited[cur_node] + neigh_cost)), после чего добавляются в queue
 # и так далее пока не будет достигнута финальня точка
-#формируется 2 сприска - общий cost_visited (в нем все пути) и финальный visited (в котором только кратчайший и выглядит он как словарь в котором ключ (клетка): значение (пред.клетка)
+# формируется 2 списка - общий cost_visited (в нем все пути) и финальный visited (в котором только кратчайший и выглядит он как словарь в котором ключ (клетка): значение (пред.клетка)
 
-def create_way(start, goal, graph):
-    global speed
+def create_way(start, goal):
+    global speed, grid
+
+    #этот блок перебирает все клетки с присваивает им сложность прохождения
+    graph = {}
+    for y, row in enumerate(grid):
+        for x, col in enumerate(row):
+            graph[(x, y)] = graph.get((x, y), []) + get_neighbours(x, y)
+
     queue = [] #Это очередь. Или список приоритетных клеток. от которых далее идет расчет
     heappush(queue, (0, start)) #эта команда добавляет в очередь queue стартовую клетку
     cost_visited = {start: 0} #в этот справочник добавляются {координаты клетки: наименьшая цена пути до нее} {(0, 0): 0, (1, 0): 1, (0, 1): 1, (2, 0): 2, (1, 1): 2}
@@ -78,18 +108,12 @@ def create_way(start, goal, graph):
 
 
 #матрица проходимости. Каждое число - шкала X.
-grid = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',]
-grid2 = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+field2 = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 
-cols, rows = 23, 13
-TILE = 50
 
-#начало поля. Это на будущее для общего смещения поля
-mainfield_X = 0
-mainfield_Y = 0
-
-
+#______________________________________________________________________________________________________________________
 #клетка
 class tile():
     def __init__ (self, x, y, x_pos, y_pos, type, closed, diff):
@@ -103,53 +127,46 @@ class tile():
 
 #типы клеток
 def none():
-    global field, x, y, xy, tile, grid, grid2
+    global field, xy, tile, grid
     tile.type = "none"
     tile.x_pos = mainfield_X + TILE * (tile.x - 1)
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
     tile.diff = 1
     none = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "-", tile.diff)
-    #print(str(xy) + ": " + str(vars(none)))
     field[xy] = none
-    grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
-    grid2[tile.y-1].append(tile.diff)
-    return field, grid, grid2
+    grid[tile.y-1].append(tile.diff)
+    field2[tile.y - 1].append(tile.type)
+    return field, grid
 
 def tree():
-    global field, x, y, xy, tile, grid, grid2
+    global field, xy, tile, grid
     tile.type = "tree"
     tile.x_pos = mainfield_X + TILE * (tile.x - 1)
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
     tile.diff = 9
     tree = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "+", tile.diff)
-    #print(str(xy) + ": " + str(vars(tree)))
     field[xy] = tree
-    grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
-    grid2[tile.y - 1].append(tile.diff)
-    return field, grid, grid2
+    grid[tile.y - 1].append(tile.diff)
+    field2[tile.y - 1].append(tile.type)
+    return field, grid
 
 def stone():
-    global field, x, y, xy, tile, grid, grid2
+    global field, xy, tile, grid
     tile.type = "stone"
     tile.x_pos = mainfield_X + TILE * (tile.x - 1)
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
     tile.diff = 2
     stone = tile(tile.x, tile.y, tile.x_pos, tile.y_pos, tile.type, "+", tile.diff)
-    #print(str(xy) + ": " + str(vars(stone)))
     field[xy]=stone
-    grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
-    grid2[tile.y - 1].append(tile.diff)
-    return field, grid, grid2
-
-
-
-
+    grid[tile.y - 1].append(tile.diff)
+    field2[tile.y - 1].append(tile.type)
+    return field, grid
 
 #______________________________________________________________________________________________________________________
 #создание поля
 rnd_type = [none, tree, stone]
-tile.x=0
-tile.y=0
+tile.x = 0
+tile.y = 0
 xy = 0
 field = {
 }
@@ -166,18 +183,8 @@ def create_battlefield(x,y):
             rand_func = random.choice(f)
             rand_func()
 
-#перезагрузка поля
-def reset_battlefield():
-    global tile, xy, field
-    tile.x = 0
-    tile.y = 0
-    xy = 0
-    field = {
-    }
-    return tile, xy, field
-
 #отрисовка поля. Общий старт
-create_battlefield(cols, rows)
+
 
 #______________________________________________________________________________________________________________________
 
@@ -188,48 +195,8 @@ pg.init()
 sc = pg.display.set_mode((1800, 1200))
 clock = pg.time.Clock()
 
-#это переводит список сложностей из [11,22,33] в [1,1],[2,2],[3,3]. Такой формат используется в алгоритме поиска пути
-print(grid)
-print(grid2)
-grid = [[int(char) for char in string] for string in grid]
-print(grid)
-graph = {}
-#enumerate() . Если range() позволяет получить только индексы элементов списка, то enumerate() – сразу индекс элемента и его значение.
-for y, row in enumerate(grid):
-    for x, col in enumerate(row):
-        graph[(x, y)] = graph.get((x, y), []) + get_neighbours(x, y)
-
-
-
-speed = 10
-
-#посещенная позиция
-start = (0, 7)
-goal = start
-queue = []
-heappush(queue, (0, start)) #это команда из библиотеки heapq. Изучить
-visited = {start: None} #словарь посещенных позиций. При поиске пути
-visited2 = {start: None} #словарь посещенных позиций. При поиске пути
-
-
-
-class person_position:
-    def __init__(self, x, y, xx, yy, color):
-        self.x = x
-        self.y = y
-        self.xx = xx
-        self.yy = yy
-        self.color = color
 
 #позиция персонажа
-start_pos_x = mainfield_X
-start_pos_y = mainfield_Y
-
-player_position = person_position(start_pos_x, start_pos_y, TILE, TILE, (22, 22, 22))
-enemy_position = person_position(start_pos_x, start_pos_y, TILE, TILE, (55, 55, 55))
-
-start = (0, 7)
-#заполнение клетки
 def person_position(start):
     global TILE
     bg = pg.image.load('knight1.jpg').convert()
@@ -239,23 +206,13 @@ def person_position(start):
 
 
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (125, 125, 125)
-LIGHT_BLUE = (64, 128, 255)
-GREEN = (0, 200, 64)
-YELLOW = (225, 225, 0)
-PINK = (230, 50, 230)
-ForestGreen = (34, 139, 34)
-RED = (255, 0, 0)
+create_battlefield(cols, rows)
+print(grid)
+print(field2)
 
-
-
-
+#отрисовка поля согласно созданной карте create_battlefield()
 def explore():
     global TILE, cols, rows, mainfield_X, mainfield_Y
-    tile_x = 0
-    tile_y = 0
 
     mainfield_X_end = mainfield_X + cols * TILE
     mainfield_Y_end = mainfield_Y + rows * TILE
@@ -263,6 +220,7 @@ def explore():
     main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
     pg.draw.rect(sc, (GREEN), main, 0)
 
+    tile_x = 0
     for i in range(0, int(rows)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
     for j in range(0, int(cols)+1):
@@ -290,7 +248,6 @@ def explore():
                 sc.blit(text1, (mainfield_X + TILE * (xxx - 1), mainfield_Y + TILE * (yyy - 1)))
 
 #создание пути передвижения
-
 #меняет позицию, если проверка прохождения была успешна
 def cp():
     global path_headd, path_segmentt, visited, start, grid
@@ -344,7 +301,7 @@ while True:
         elif event.type == pg.MOUSEMOTION:
             mouse_move = get_mouse_pos()
             goal = mouse_move
-            visited = create_way(start, mouse_move, graph)
+            visited = create_way(start, mouse_move)
         elif event.type == pg.MOUSEBUTTONDOWN:
             if event.button == 1:
                 mouse_clik = get_click_mouse_pos()
