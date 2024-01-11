@@ -4,7 +4,6 @@ import random
 import sys
 
 
-#это большой блок для отриссовки "змейки" и поиска пути. онять до конца как он работаю
 #функция создания круга для "змейки"
 def get_circle(x, y):
     return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // 4
@@ -15,13 +14,6 @@ def get_neighbours(x, y):
     check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows and grid[0][0] != 2 else False
     ways = [-1, 0], [0, -1], [1, 0], [0, 1]#, [-1, -1], [1, -1], [1, 1], [-1, 1]
     return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != 9]
-
-    #(grid[y + dy][x + dx]) - эта команда определяет стоимость прохождения
-
-    #Если в конце x и y (или dx, dy) умножить на какое-то значение, это ограничивает длинну змейки. Понять как это работает, чтобы проверка была не на всей карте, а по нужной длинне
-    #dx*11 - означет что длинна уменьшиться на 11 от противоположного края
-    #dy*4 - означает что длинна уменьшиться на 3 от верхнего и нижнего края
-
 
 
 def get_click_mouse_pos():
@@ -87,7 +79,7 @@ def create_way(start, goal, graph):
 
 #матрица проходимости. Каждое число - шкала X.
 grid = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',]
-
+grid2 = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 
 cols, rows = 23, 13
@@ -111,7 +103,7 @@ class tile():
 
 #типы клеток
 def none():
-    global field, x, y, xy, tile, grid
+    global field, x, y, xy, tile, grid, grid2
     tile.type = "none"
     tile.x_pos = mainfield_X + TILE * (tile.x - 1)
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
@@ -120,10 +112,11 @@ def none():
     #print(str(xy) + ": " + str(vars(none)))
     field[xy] = none
     grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
-    return field, grid
+    grid2[tile.y-1].append(tile.diff)
+    return field, grid, grid2
 
 def tree():
-    global field, x, y, xy, tile, grid
+    global field, x, y, xy, tile, grid, grid2
     tile.type = "tree"
     tile.x_pos = mainfield_X + TILE * (tile.x - 1)
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
@@ -132,10 +125,11 @@ def tree():
     #print(str(xy) + ": " + str(vars(tree)))
     field[xy] = tree
     grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
-    return field, grid
+    grid2[tile.y - 1].append(tile.diff)
+    return field, grid, grid2
 
 def stone():
-    global field, x, y, xy, tile, grid
+    global field, x, y, xy, tile, grid, grid2
     tile.type = "stone"
     tile.x_pos = mainfield_X + TILE * (tile.x - 1)
     tile.y_pos = mainfield_Y + TILE * (tile.y - 1)
@@ -144,13 +138,14 @@ def stone():
     #print(str(xy) + ": " + str(vars(stone)))
     field[xy]=stone
     grid[tile.y-1] = str(grid[tile.y-1]) + str(tile.diff)
-    return field, grid
+    grid2[tile.y - 1].append(tile.diff)
+    return field, grid, grid2
 
 
 
 
 
-
+#______________________________________________________________________________________________________________________
 #создание поля
 rnd_type = [none, tree, stone]
 tile.x=0
@@ -158,6 +153,7 @@ tile.y=0
 xy = 0
 field = {
 }
+
 def create_battlefield(x,y):
     global xy
     for i in range(x):
@@ -180,11 +176,10 @@ def reset_battlefield():
     }
     return tile, xy, field
 
-
-
-
 #отрисовка поля. Общий старт
 create_battlefield(cols, rows)
+
+#______________________________________________________________________________________________________________________
 
 #это необходимо для инициализации всех вложенных модулей
 pg.init()
@@ -193,9 +188,11 @@ pg.init()
 sc = pg.display.set_mode((1800, 1200))
 clock = pg.time.Clock()
 
-
+#это переводит список сложностей из [11,22,33] в [1,1],[2,2],[3,3]. Такой формат используется в алгоритме поиска пути
+print(grid)
+print(grid2)
 grid = [[int(char) for char in string] for string in grid]
-# adjacency dict
+print(grid)
 graph = {}
 #enumerate() . Если range() позволяет получить только индексы элементов списка, то enumerate() – сразу индекс элемента и его значение.
 for y, row in enumerate(grid):
