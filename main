@@ -75,7 +75,7 @@ def create_way(start, goal):
     queue = [] #Это очередь. Или список приоритетных клеток. от которых далее идет расчет
     heappush(queue, (0, start)) #эта команда добавляет в очередь queue стартовую клетку
     cost_visited = {start: 0} #в этот справочник добавляются {координаты клетки: наименьшая цена пути до нее} {(0, 0): 0, (1, 0): 1, (0, 1): 1, (2, 0): 2, (1, 1): 2}
-    visited = {start: None} #а это итоговый маршрут. В нем первончальной клетка + соседи. Потом добавляется сосденяя с лучшей ценой + уже ее соседи. И так далее.
+    visited = {start: 0} #а это итоговый маршрут. В нем первончальной клетка + соседи. Потом добавляется сосденяя с лучшей ценой + уже ее соседи. И так далее.
     while queue:
         cur_cost, cur_node = heappop(queue)
         #heappop(queue) - возвращает наименьшее значение из queue
@@ -105,47 +105,55 @@ grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], 
 #матрица клеток. Каждое число - шкала X.
 field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
+field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 #______________________________________________________________________________________________________________________
 #клетка
 class tile():
-    def __init__ (self, x_pos, y_pos, type, closed, diff):
+    def __init__ (self, x_pos, y_pos, type, closed, diff, image):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.type = type
         self.closed = closed
         self.diff = diff
+        self.image = image
 
 #типы клеток
 def none():
-    global tile, grid
-    tile.type = "none"
+    global tile
     tile.x_pos = tile.x
     tile.y_pos = tile.y
     tile.diff = 1
-    grid[tile.y-1].append(tile.diff)
+    grid[tile.y - 1].append(tile.diff)
+    tile.type = "none"
     field[tile.y - 1].append(tile.type)
-    return field, grid
+    tile.image = 'Grass1.png'
+    field_images[tile.y - 1].append(tile.image)
+
 
 def tree():
-    global tile, grid
-    tile.type = "tree"
+    global tile
     tile.x_pos = tile.x
     tile.y_pos = tile.y
     tile.diff = 9
     grid[tile.y - 1].append(tile.diff)
+    tile.type = "tree"
     field[tile.y - 1].append(tile.type)
-    return field, grid
+    tile.image = 'Tree1.png'
+    field_images[tile.y - 1].append(tile.image)
+
 
 def stone():
-    global tile, grid
-    tile.type = "stone"
+    global tile
     tile.x_pos = tile.x
     tile.y_pos = tile.y
     tile.diff = 2
     grid[tile.y - 1].append(tile.diff)
+    tile.type = "stone"
     field[tile.y - 1].append(tile.type)
-    return field, grid
+    tile.image = 'rock1.png'
+    field_images[tile.y - 1].append(tile.image)
+
 
 #______________________________________________________________________________________________________________________
 #создание поля
@@ -163,6 +171,8 @@ def create_battlefield(x,y):
             rand_func = random.choice(f)
             rand_func()
 create_battlefield(cols, rows)
+
+
 
 #______________________________________________________________________________________________________________________
 
@@ -184,37 +194,26 @@ def person_position(start):
 #отрисовка поля согласно созданной карте create_battlefield()
 def explore():
     global TILE, cols, rows, mainfield_X, mainfield_Y
-
     mainfield_X_end = mainfield_X + cols * TILE
     mainfield_Y_end = mainfield_Y + rows * TILE
-
     main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
     pg.draw.rect(sc, (GREEN), main, 0)
-
     tile_x = -1
-    for i in range(0, int(rows)+1):
-        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
-    for j in range(0, int(cols)+1):
-        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
     for t in range(cols):
         tile_x += 1
         tile_y = -1
         for r in range(rows):
             tile_y += 1
-            if field[tile_y][tile_x] == "stone":
-                bg = pg.image.load('rock1.png').convert()
-                bg = pg.transform.scale(bg, (TILE, TILE))
-                sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
-                #f1 = pg.font.Font(None, 24)
-                #text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
-                #sc.blit(text1, (mainfield_X+TILE*(tile_x-1), mainfield_Y+TILE*(tile_y-1)))
-            elif field[tile_y][tile_x] == "tree":
-                bg = pg.image.load('Tree1.png').convert()
-                bg = pg.transform.scale(bg, (TILE, TILE))
-                sc.blit(bg, (mainfield_X+TILE*(tile_x), mainfield_Y+TILE*(tile_y)))
-                #f1 = pg.font.Font(None, 24)
-                #text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
-                #sc.blit(text1, (mainfield_X + TILE * (tile_x - 1), mainfield_Y + TILE * (tile_y - 1)))
+            bg = pg.image.load(field_images[tile_y][tile_x]).convert()
+            bg = pg.transform.scale(bg, (TILE, TILE))
+            sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
+            # f1 = pg.font.Font(None, 24)
+            # text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
+            # sc.blit(text1, (mainfield_X+TILE*(tile_x-1), mainfield_Y+TILE*(tile_y-1)))
+    for i in range(0, int(rows)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
+    for j in range(0, int(cols)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
 
 
 #создание пути передвижения
@@ -226,18 +225,17 @@ def cp():
         path_segmentt = visited[path_segmentt]
         #создаем путь
         way.append(path_segmentt)
-    #убираем из него последнее значение none
-    way2 = way[:-1]
     diff = 0
+    # -2 потому-что нам нужна 2е значение с конца.
     x = -2
 
     #цикл определяет клетку в которой сумма сложностей пройенных клеток становится выше скорости. Или если финальная клетка равная новой
-    for i in way2:
-        new_pos = way2[x]
-        diff += grid[way2[x][1]][way2[x][0]]
-        if diff >= speed:
+    for i in way:
+        new_pos = way[x]
+        diff += grid[way[x][1]][way[x][0]]
+        if diff > speed:
             start = new_pos
-        elif new_pos == way2[0]:
+        elif new_pos == way[0]:
             start = path_headd
         else:
             x -= 1
