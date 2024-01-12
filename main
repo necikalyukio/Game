@@ -104,7 +104,7 @@ def create_way(start, goal):
 grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 #матрица клеток. Каждое число - шкала X.
 field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
-
+#матрица картинок. Каждое число - шкала X.
 field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 #______________________________________________________________________________________________________________________
@@ -119,59 +119,60 @@ class tile():
         self.image = image
 
 #типы клеток
-def none():
+def none(x, y):
     global tile
-    tile.x_pos = tile.x
-    tile.y_pos = tile.y
+    tile.x_pos = x
+    tile.y_pos = y
     tile.diff = 1
-    grid[tile.y - 1].append(tile.diff)
+    grid[tile.y_pos - 1].append(tile.diff)
     tile.type = "none"
-    field[tile.y - 1].append(tile.type)
+    field[tile.y_pos - 1].append(tile.type)
     tile.image = 'Grass1.png'
-    field_images[tile.y - 1].append(tile.image)
+    field_images[tile.y_pos - 1].append(tile.image)
 
 
-def tree():
+def tree(x, y):
     global tile
-    tile.x_pos = tile.x
-    tile.y_pos = tile.y
+    tile.x_pos = x
+    tile.y_pos = y
     tile.diff = 9
-    grid[tile.y - 1].append(tile.diff)
+    grid[tile.y_pos - 1].append(tile.diff)
     tile.type = "tree"
-    field[tile.y - 1].append(tile.type)
+    field[tile.y_pos - 1].append(tile.type)
     tile.image = 'Tree1.png'
-    field_images[tile.y - 1].append(tile.image)
+    field_images[tile.y_pos - 1].append(tile.image)
 
 
-def stone():
+def stone(x, y):
     global tile
-    tile.x_pos = tile.x
-    tile.y_pos = tile.y
+    tile.x_pos = x
+    tile.y_pos = y
     tile.diff = 2
-    grid[tile.y - 1].append(tile.diff)
+    grid[tile.y_pos - 1].append(tile.diff)
     tile.type = "stone"
-    field[tile.y - 1].append(tile.type)
+    field[tile.y_pos - 1].append(tile.type)
     tile.image = 'rock1.png'
-    field_images[tile.y - 1].append(tile.image)
+    field_images[tile.y_pos - 1].append(tile.image)
 
 
 #______________________________________________________________________________________________________________________
 #создание поля
 rnd_type = [none, tree, stone]
-tile.x = 0
-tile.y = 0
 
-def create_battlefield(x,y):
-    for i in range(x):
-        tile.x += 1
-        tile.y = 0
-        for j in range(y):
-            tile.y += 1
+
+def create_battlefield(cols, rows):
+    x = 0
+    for i in range(cols):
+        x += 1
+        y = 0
+        for j in range(rows):
+            y += 1
             f = random.choices(rnd_type, weights=[5, 1, 1])
             rand_func = random.choice(f)
-            rand_func()
-create_battlefield(cols, rows)
+            rand_func(x, y)
 
+
+create_battlefield(cols, rows)
 
 
 #______________________________________________________________________________________________________________________
@@ -219,34 +220,36 @@ def explore():
 #создание пути передвижения
 #меняет позицию, если проверка прохождения была успешна
 def cp():
-    global path_headd, path_segmentt, visited, start, grid
-    way = []
-    while path_segmentt and path_segmentt in visited:
-        path_segmentt = visited[path_segmentt]
-        #создаем путь
-        way.append(path_segmentt)
+    global path_head, path_segment, visited, start, grid
+    path = []
+    while path_segment and path_segment in visited:
+        path_segment = visited[path_segment]
+        path.append(path_segment) #создаем путь
     diff = 0
-    # -2 потому-что нам нужна 2е значение с конца.
-    x = -2
+    x = -2 # -2 потому-что нам нужна 2е значение с конца.
 
     #цикл определяет клетку в которой сумма сложностей пройенных клеток становится выше скорости. Или если финальная клетка равная новой
-    for i in way:
-        new_pos = way[x]
-        diff += grid[way[x][1]][way[x][0]]
-        if diff > speed:
-            start = new_pos
-        elif new_pos == way[0]:
-            start = path_headd
-        else:
-            x -= 1
+    for i in path:
+        if path_head == start: #если новая позиция == стартовой, цикл обрывается что-бы не было ошибки
+            break
+        else: #проверяем сложность клетки.
+            new_pos = path[x] #перемещаем объект на следующую клетку маршрута
+            diff += grid[path[x][1]][path[x][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
+            if diff > speed: #если сложность выше скорости
+                start = new_pos #объявляем новую позицию объекта в данной клетке
+            elif new_pos == path[0]: #если фыинальная клетка в маршруте == выбранной
+                start = path_head #объявляем новую позицию объекта в данной клетке
+            else:
+                x -= 1 #проверяем слудующуюклетку в маршруте и повторяем цикл
     return start
+
+
 
 
 # показывает путь без изменения позиции
 # простыми словами
 # visited - словарь с списком соседей {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6), (1, 7): (1, 6), (2, 7): (1, 7)}
 # в данном примере (2, 7) - это финальная точка. Цикл ниже перебирает клетки от ключа (2, 7) ищет привязанную к ней клетку (1, 7) и так далее пока не закончится.
-
 def path():
     global path_head, path_segment, visited
     while path_segment and path_segment in visited:
@@ -274,15 +277,11 @@ while True:
             if event.button == 1:
                 mouse_clik = get_click_mouse_pos()
                 #эти 3 строки переписать. Наверняка дублирует то что в самом низу
-                goall = mouse_clik
-                path_segmentt = goall
-                path_headd = goall
+                goal = mouse_clik
+                path_segment = goal
+                path_head = goal
                 if mouse_clik:
                     cp()
-
-
-
-
 
     # отрисовка линии
     path_head = goal  # конец линии. Голова
@@ -290,11 +289,8 @@ while True:
 
     path()
 
-
     pg.display.flip()
     clock.tick(30)
-
-    #(16, 5)
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
