@@ -20,13 +20,19 @@ cols, rows = 23, 13 #количество клеток по горизонтал
 TILE = 50 #размер клетки
 
 #временные переменные
-speed = 10 #нужна для теста переменещения. Потом заменить на скорость персонажей
+speed = 20 #нужна для теста переменещения. Потом заменить на скорость персонажей
 start = (0, 7) #стартовая позиция. Потом заменить на позицию при размещении персонажей
 
 #начало поля. Это на будущее для общего смещения поля
 mainfield_X = 0
 mainfield_Y = 0
 
+#матрица проходимости. Каждое число - шкала X.
+grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+#матрица клеток. Каждое число - шкала X.
+field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+#матрица картинок. Каждое число - шкала X.
+field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 #функция создания круга для "змейки"
 def get_circle(x, y):
@@ -34,9 +40,15 @@ def get_circle(x, y):
 
 #определить соседние клетки
 def get_neighbours(x, y):
-    check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows and grid[0][0] != 2 else False
+    check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows else False
     ways = [-1, 0], [0, -1], [1, 0], [0, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]
-    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != 9]
+    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != '-']
+
+    #return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != '-']
+
+
+
+
 
 def get_click_mouse_pos():
     x, y = pg.mouse.get_pos()
@@ -66,7 +78,7 @@ def heuristic(a, b):
 def create_way(start, goal):
     global speed, grid
 
-    #этот блок перебирает все клетки с присваивает им сложность прохождения
+    #этот блок перебирает все клетки и присваивает им сложность прохождения
     graph = {}
     for y, row in enumerate(grid):
         for x, col in enumerate(row):
@@ -78,13 +90,22 @@ def create_way(start, goal):
     visited = {start: 0} #а это итоговый маршрут. В нем первончальной клетка + соседи. Потом добавляется сосденяя с лучшей ценой + уже ее соседи. И так далее.
     while queue:
         cur_cost, cur_node = heappop(queue)
+
         #heappop(queue) - возвращает наименьшее значение из queue
         if cur_node == goal:
             break
         neighbours = graph[cur_node] #это проверяет соседние клетки
         for neighbour in neighbours:
             neigh_cost, neigh_node = neighbour
-            new_cost = cost_visited[cur_node] + neigh_cost
+            #если соседняя клетка по диагонали, ее стоимость прохождения больше
+            if heuristic(cur_node, neigh_node) == 1:
+                new_cost = cost_visited[cur_node] + neigh_cost
+            elif heuristic(cur_node, neigh_node) == 2:
+                new_cost = cost_visited[cur_node] + neigh_cost*1.5
+            #print(neigh_node)
+            #print(abs(cur_node[0] + cur_node[1]))
+            #print(abs(neigh_node[0]+neigh_node[1]))
+            #print(abs((cur_node[0]+cur_node[1])-(neigh_node[0]+neigh_node[1])))
             if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
                 #на этом этапе:
                 #если новой клетки нет в списке посещенных (cost_visited)
@@ -100,12 +121,6 @@ def create_way(start, goal):
     return visited
 
 
-#матрица проходимости. Каждое число - шкала X.
-grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
-#матрица клеток. Каждое число - шкала X.
-field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
-#матрица картинок. Каждое число - шкала X.
-field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 #______________________________________________________________________________________________________________________
 #клетка
@@ -123,31 +138,29 @@ def none(x, y):
     global tile
     tile.x_pos = x
     tile.y_pos = y
-    tile.diff = 1
+    tile.diff = 2
     grid[tile.y_pos][tile.x_pos] = tile.diff
     tile.type = "none"
     field[tile.y_pos][tile.x_pos] = tile.type
     tile.image = 'Grass1.png'
     field_images[tile.y_pos][tile.x_pos] = tile.image
 
-
 def tree(x, y):
     global tile
     tile.x_pos = x
     tile.y_pos = y
-    tile.diff = 9
+    tile.diff = '-'
     grid[tile.y_pos][tile.x_pos] = tile.diff
     tile.type = "tree"
     field[tile.y_pos][tile.x_pos] = tile.type
     tile.image = 'Tree1.png'
     field_images[tile.y_pos][tile.x_pos] = tile.image
 
-
 def stone(x, y):
     global tile
     tile.x_pos = x
     tile.y_pos = y
-    tile.diff = 2
+    tile.diff = 3
     grid[tile.y_pos][tile.x_pos] = tile.diff
     tile.type = "stone"
     field[tile.y_pos][tile.x_pos] = tile.type
@@ -183,7 +196,6 @@ def fill_battlefield(cols, rows):
             rand_func = random.choice(f)
             rand_func(x, y)
 
-
 create_battlefield(cols, rows)
 fill_battlefield(cols, rows)
 
@@ -192,9 +204,6 @@ fill_battlefield(cols, rows)
 def change_tile(tile, x, y):
     tile(x, y)
 change_tile(none, start[0], start[1])
-
-
-
 
 #______________________________________________________________________________________________________________________
 
@@ -240,6 +249,8 @@ def explore():
 
 #создание пути передвижения
 #меняет позицию, если проверка прохождения была успешна
+#используется костыль. функция перемещаетна 1 клетку больше. По этому приходится делать остечку по diff >= speed, а не diff > speed
+#оно работает. Но надопонять в чем дело
 def cp():
     global path_head, path_segment, visited, start, grid
     path = []
@@ -247,7 +258,9 @@ def cp():
         path_segment = visited[path_segment]
         path.append(path_segment) #создаем путь
     diff = 0
+    path[-1] = path[-2]
     x = -2 # -2 потому-что нам нужна 2е значение с конца.
+    print(path)
 
     #цикл определяет клетку в которой сумма сложностей пройенных клеток становится выше скорости. Или если финальная клетка равная новой
     for i in path:
@@ -255,17 +268,17 @@ def cp():
             break
         else: #проверяем сложность клетки.
             new_pos = path[x] #перемещаем объект на следующую клетку маршрута
-            diff += grid[path[x][1]][path[x][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
-            if diff > speed: #если сложность выше скорости
+            if heuristic(path[x], path[x+1]) == 1: #если клетки соседние по горизонтали
+                diff += grid[path[x][1]][path[x][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
+            elif heuristic(path[x], path[x+1]) == 2: #если клетки соседние по диагонали
+                diff += grid[path[x][1]][path[x][0]]*1.5 #добавляем сложность клетки в сумму сложностей пройденных клеток
+            if diff >= speed: #если сложность выше скорости
                 start = new_pos #объявляем новую позицию объекта в данной клетке
             elif new_pos == path[0]: #если фыинальная клетка в маршруте == выбранной
                 start = path_head #объявляем новую позицию объекта в данной клетке
             else:
                 x -= 1 #проверяем слудующуюклетку в маршруте и повторяем цикл
     return start
-
-
-
 
 # показывает путь без изменения позиции
 # простыми словами
@@ -278,7 +291,6 @@ def path():
         path_segment = visited[path_segment]
         pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
         pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
-
 
 #основной цикл
 while True:
