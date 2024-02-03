@@ -16,7 +16,7 @@ PINK = (230, 50, 230)
 ForestGreen = (34, 139, 34)
 RED = (255, 0, 0)
 
-cols, rows = 23, 13 #количество клеток по горизонтали и вертикали
+cols, rows = 33, 23 #количество клеток по горизонтали и вертикали
 TILE = 50 #размер клетки
 
 #временные переменные
@@ -53,14 +53,14 @@ def get_neighbours(x, y):
 def get_click_mouse_pos():
     x, y = pg.mouse.get_pos()
     grid_x, grid_y = x // TILE, y // TILE
-    pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y))
+    #pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y)) #рисует круг на месте клика мыши
     click = pg.mouse.get_pressed()
     return (grid_x, grid_y) if click[0] else False
 
 def get_mouse_pos():
     x, y = pg.mouse.get_pos()
     grid_x, grid_y = x // TILE, y // TILE
-    pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y))
+    #pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y)) #рисует круг на месте клика мыши
     return (grid_x, grid_y)
 
 def heuristic(a, b):
@@ -118,6 +118,7 @@ def create_way(start, goal):
                 visited[neigh_node] = cur_node #формирует итоговый маршрут который выглядит как справочник {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6)}
                                                #(1, 5) - это ключ, по которому можно найти предмет - пред.клетку (1, 6)
                                                #это и передается на выход
+    visited2 = 1
     return visited
 
 
@@ -168,6 +169,18 @@ def stone(x, y):
     field_images[tile.y_pos][tile.x_pos] = tile.image
 
 
+def road(x, y):
+    global tile
+    tile.x_pos = x
+    tile.y_pos = y
+    tile.diff = 1
+    grid[tile.y_pos][tile.x_pos] = tile.diff
+    tile.type = "road"
+    field[tile.y_pos][tile.x_pos] = tile.type
+    tile.image = 'road1.jpg'
+    field_images[tile.y_pos][tile.x_pos] = tile.image
+
+
 #______________________________________________________________________________________________________________________
 #создание поля
 rnd_type = [none, tree, stone]
@@ -196,8 +209,21 @@ def fill_battlefield(cols, rows):
             rand_func = random.choice(f)
             rand_func(x, y)
 
+#создание дороги. Доработать
+#def crete_road():
+#    end = (5, 15)
+#    start = (23, 5)
+#    visited = create_way(start, end)
+#    print(visited)
+#    for i in visited:
+#        road(visited[1][1], visited[1][1])
+
+
+
+
 create_battlefield(cols, rows)
 fill_battlefield(cols, rows)
+#crete_road()
 
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
 #в данном случае меняет стартовую клетку на пустую.
@@ -235,9 +261,10 @@ def explore():
         tile_y = -1
         for r in range(rows):
             tile_y += 1
-            bg = pg.image.load(field_images[tile_y][tile_x]).convert()
-            bg = pg.transform.scale(bg, (TILE, TILE))
-            sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
+            if field[tile_y][tile_x] != "none":
+                bg = pg.image.load(field_images[tile_y][tile_x]).convert()
+                bg = pg.transform.scale(bg, (TILE, TILE))
+                sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
             # f1 = pg.font.Font(None, 24)
             # text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
             # sc.blit(text1, (mainfield_X+TILE*(tile_x-1), mainfield_Y+TILE*(tile_y-1)))
@@ -247,16 +274,23 @@ def explore():
         pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
 
 
+
+
+
 #создание пути передвижения
 #меняет позицию, если проверка прохождения была успешна
 #используется костыль. функция перемещаетна 1 клетку больше. По этому приходится делать остечку по diff >= speed, а не diff > speed
 #оно работает. Но надопонять в чем дело
 def cp():
     global path_head, path_segment, visited, start, grid
+    print(visited)
     path = []
+    #берем указанную клетку (path_segment), ищем ее пару. Пару назначам path_segment и ищем ее пару.
     while path_segment and path_segment in visited:
+        print(visited[path_segment])
         path_segment = visited[path_segment]
         path.append(path_segment) #создаем путь
+    print(path)
     diff = 0
     if path == []: #это костыль. Если цель непроходима (напр.Дерево), то в функцию путь не передается.
         path = []
@@ -286,42 +320,43 @@ def cp():
 # visited - словарь с списком соседей {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6), (1, 7): (1, 6), (2, 7): (1, 7)}
 # в данном примере (2, 7) - это финальная точка. Цикл ниже перебирает клетки от ключа (2, 7) ищет привязанную к ней клетку (1, 7) и так далее пока не закончится.
 def path():
-    global path_head, path_segment, visited
+    mouse_pos = get_mouse_pos()
+    goal = mouse_pos
+    path_head = goal
+    path_segment = goal
+    visited = create_way(start, mouse_pos)
     while path_segment and path_segment in visited:
         pg.draw.circle(sc, pg.Color('blue'), *get_circle(*path_segment))
         path_segment = visited[path_segment]
         pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
         pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
 
+
+
+
 #основной цикл
 while True:
+    #сделать функцию которая указывает какие элементы нужны обновлять постоянно, и обновляет их.
+    #например отрисовка пути нужна только при активации персонажа и только в бою. Вне данных условий, ее отключить
     pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
     explore()
     person_position(start)
+    path()
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
             pg.quit()
             sys.exit()
-        elif event.type == pg.MOUSEMOTION:
-            mouse_move = get_mouse_pos()
-            goal = mouse_move
-            visited = create_way(start, mouse_move)
+        # этот блок отвечает за передвижение. В дальнейшем, так его и выделить
         elif event.type == pg.MOUSEBUTTONDOWN:
+            mouse_clik = get_mouse_pos()
+            goal = mouse_clik
+            path_head = goal
+            path_segment = goal
+            visited = create_way(start, mouse_clik)
             if event.button == 1:
-                mouse_clik = get_click_mouse_pos()
-                #эти 3 строки переписать. Наверняка дублирует то что в самом низу
-                goal = mouse_clik
-                path_segment = goal
-                path_head = goal
-                if mouse_clik:
-                    cp()
+                cp()
 
-    # отрисовка линии
-    path_head = goal  # конец линии. Голова
-    path_segment = goal  # элементы линии. сегмент
-
-    path()
 
     pg.display.flip()
     clock.tick(30)
