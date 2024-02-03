@@ -75,7 +75,7 @@ def heuristic(a, b):
 # и так далее пока не будет достигнута финальня точка
 # формируется 2 списка - общий cost_visited (в нем все пути) и финальный visited (в котором только кратчайший и выглядит он как словарь в котором ключ (клетка): значение (пред.клетка)
 
-def create_way(start, goal):
+def create_way(start, goal, path_segment):
     global speed, grid
 
     #этот блок перебирает все клетки и присваивает им сложность прохождения
@@ -102,10 +102,6 @@ def create_way(start, goal):
                 new_cost = cost_visited[cur_node] + neigh_cost
             elif heuristic(cur_node, neigh_node) == 2:
                 new_cost = cost_visited[cur_node] + neigh_cost*1.5
-            #print(neigh_node)
-            #print(abs(cur_node[0] + cur_node[1]))
-            #print(abs(neigh_node[0]+neigh_node[1]))
-            #print(abs((cur_node[0]+cur_node[1])-(neigh_node[0]+neigh_node[1])))
             if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
                 #на этом этапе:
                 #если новой клетки нет в списке посещенных (cost_visited)
@@ -117,9 +113,15 @@ def create_way(start, goal):
                 cost_visited[neigh_node] = new_cost
                 visited[neigh_node] = cur_node #формирует итоговый маршрут который выглядит как справочник {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6)}
                                                #(1, 5) - это ключ, по которому можно найти предмет - пред.клетку (1, 6)
-                                               #это и передается на выход
-    visited2 = 1
-    return visited
+
+    way = []
+    #берем указанную клетку (path_segment), ищем ее пару. Пару назначам path_segment и ищем ее пару.
+    while path_segment and path_segment in visited:
+        path_segment = visited[path_segment]
+        way.append(path_segment) #создаем путь
+    way.insert(0, goal)
+    way = way[:-1]
+    return way
 
 
 
@@ -282,37 +284,32 @@ def explore():
 #используется костыль. функция перемещаетна 1 клетку больше. По этому приходится делать остечку по diff >= speed, а не diff > speed
 #оно работает. Но надопонять в чем дело
 def cp():
-    global path_head, path_segment, visited, start, grid
-    print(visited)
-    path = []
-    #берем указанную клетку (path_segment), ищем ее пару. Пару назначам path_segment и ищем ее пару.
-    while path_segment and path_segment in visited:
-        print(visited[path_segment])
-        path_segment = visited[path_segment]
-        path.append(path_segment) #создаем путь
-    print(path)
+    global start, grid
+    mouse_clik = get_mouse_pos()
+    goal = mouse_clik
+    path_head = goal
+    path_segment = goal
+    way = create_way(start, path_head, path_segment)
+
+
     diff = 0
-    if path == []: #это костыль. Если цель непроходима (напр.Дерево), то в функцию путь не передается.
-        path = []
-    else:
-        path[-1] = path[-2]
     x = -2 # -2 потому-что нам нужна 2е значение с конца.
     #цикл определяет клетку в которой сумма сложностей пройенных клеток становится выше скорости. Или если финальная клетка равная новой
-    for i in path:
-        if path_head == start: #если новая позиция == стартовой, цикл обрывается что-бы не было ошибки
-            break
-        else: #проверяем сложность клетки.
-            new_pos = path[x] #перемещаем объект на следующую клетку маршрута
-            if heuristic(path[x], path[x+1]) == 1: #если клетки соседние по горизонтали
-                diff += grid[path[x][1]][path[x][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
-            elif heuristic(path[x], path[x+1]) == 2: #если клетки соседние по диагонали
-                diff += grid[path[x][1]][path[x][0]]*1.5 #добавляем сложность клетки в сумму сложностей пройденных клеток
+    for i in way:
+        try:
+            new_pos = way[x] #перемещаем объект на следующую клетку маршрута
+            if heuristic(way[x], way[x+1]) == 1: #если клетки соседние по горизонтали
+                diff += grid[way[x][1]][way[x][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
+            elif heuristic(way[x], way[x+1]) == 2: #если клетки соседние по диагонали
+                diff += grid[way[x][1]][way[x][0]]*1.5 #добавляем сложность клетки в сумму сложностей пройденных клеток
             if diff >= speed: #если сложность выше скорости
                 start = new_pos #объявляем новую позицию объекта в данной клетке
-            elif new_pos == path[0]: #если финальная клетка в маршруте == выбранной
+            elif new_pos == way[0]: #если финальная клетка в маршруте == выбранной
                 start = path_head #объявляем новую позицию объекта в данной клетке
             else:
                 x -= 1 #проверяем слудующуюклетку в маршруте и повторяем цикл
+        except:
+            continue
     return start
 
 # показывает путь без изменения позиции
@@ -322,15 +319,16 @@ def cp():
 def path():
     mouse_pos = get_mouse_pos()
     goal = mouse_pos
-    path_head = goal
     path_segment = goal
-    visited = create_way(start, mouse_pos)
-    while path_segment and path_segment in visited:
-        pg.draw.circle(sc, pg.Color('blue'), *get_circle(*path_segment))
-        path_segment = visited[path_segment]
-        pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*path_head))
-        pg.draw.circle(sc, pg.Color('green'), *get_circle(*start))
-
+    way = create_way(start, mouse_pos, path_segment)
+    segment = -1
+    for i in way:
+        try:
+            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment]))
+            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0]))
+            segment -= 1
+        except:
+            continue
 
 
 
@@ -349,11 +347,6 @@ while True:
             sys.exit()
         # этот блок отвечает за передвижение. В дальнейшем, так его и выделить
         elif event.type == pg.MOUSEBUTTONDOWN:
-            mouse_clik = get_mouse_pos()
-            goal = mouse_clik
-            path_head = goal
-            path_segment = goal
-            visited = create_way(start, mouse_clik)
             if event.button == 1:
                 cp()
 
