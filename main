@@ -387,9 +387,10 @@ enemy = person("knight", enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, en
 
 
 
-queue_person = [person, enemy]
+queue_person = [player, enemy]
 turn_person = 0
-act_person = queue_person[turn_person]
+
+print(queue_person[turn_person].pos)
 
 
 #______________________________________________________________________________________________________________________
@@ -456,6 +457,8 @@ def cp():
         except:
             continue
     return start, speed
+
+
 
 # показывает путь без изменения позиции
 # простыми словами
