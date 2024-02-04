@@ -44,9 +44,16 @@ field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
 field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 
+buttons = []
+buttons_command = []
 
 queue_person = []
 turn_person = 0
+
+#выход из игры
+def exit_game():
+    pg.quit()
+    sys.exit()
 
 
 #функция создания круга для "змейки"
@@ -270,45 +277,72 @@ pg.init()
 #______________________________________________________________________________________________________________________
 
 #кнопки
-battoms = []
+
 
 #блок кнопок
-battom_blok_x = 10
-battom_blok_y = screen_Y - 60
+button_blok_x = 10
+button_blok_y = screen_Y - 60
 
 #скрытая кнопка.
-battom_dark_x = 999999
-battom_dark_y = 999999
-
-#battom1
-battom1_x = battom_blok_x
-battom1_y = battom_blok_y + 5
-
-#battom2
-battom2_x = battom_blok_x + 60
-battom2_y = battom_blok_y + 5
-
-#battom3
-battom3_x = battom_blok_x + 120
-battom3_y = battom_blok_y + 5
-
-#battom4
-battom4_x = battom_blok_x + 180
-battom4_y = battom_blok_y + 5
-
-#battom end
-battom_exit_x = battom_blok_x + screen_X - 120
-battom_exit_y = battom_blok_y + 5
+button_dark_x = 999999
+button_dark_y = 999999
 
 
-def battom_blok():
-    battom_blok = pg.Rect(battom_blok_x, battom_blok_y, screen_X - 10, 50)
-    pg.draw.rect(sc, (GRAY), battom_blok, 0)
+
+def button_blok():
+    button_blok = pg.Rect(button_blok_x, button_blok_y, screen_X - 10, 50)
+    pg.draw.rect(sc, (GRAY), button_blok, 0)
+
+class button():
+    def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command):
+        self.name = name
+        self.pos_X = pos_X
+        self.pos_Y = pos_Y
+        self.size_X = size_X
+        self.size_Y = size_Y
+        self.act_color = act_color
+        self.inact_color = inact_color
+        self.command = command
+
+#еще костыль. Все кнопки отрисовываются, относительно координат предыдущей. пришлось добавть кнопку-заглушку.
+base_button = button('base', button_blok_x-55, button_blok_y+5, 40, 40, (111,111,11), (111,111,11), "None")
+buttons.append(base_button)
+buttons_command.append(base_button.command)
+
+def button_create(name, act_color, inact_color, command):
+    global buttons, buttons_command, button
+
+    pos_X = buttons[-1].pos_X + 60
+    pos_Y = buttons[-1].pos_Y
+
+    size_X = 40
+    size_Y = 40
+
+    buttonn = pg.Rect(pos_X, pos_Y, size_X, size_Y)
+    pg.draw.rect(sc, (act_color), buttonn, 0)
+
+    button1 = button(name, pos_X, pos_Y, 40, 40, act_color, inact_color, command)
+    buttons.append(button1)
+    buttons_command.append(command)
+
+    return buttons, buttons_command
+
+#нажатие кнопки. Проверка координат и выполнение функции кнопки
+#как работает: снопки в списке кнопок и команд в списке команд расположены в одном порядке.
+#когда проверка координат успешна (позиция мыши "внутри" кнопки), выполняется функция под тем же номером что и кнопка
+def push_button(x, y):
+    global buttons, buttons_command
+    num_but = 0
+    for i in buttons:
+        if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
+            buttons_command[num_but]()
+            print("1")
+            break
+        else:
+            print("0")
+            num_but += 1
 
 
-def battom(pos_X, pos_Y, size_X, size_Y, color):
-    battom = pg.Rect(pos_X, pos_Y, size_X, size_Y)
-    pg.draw.rect(sc, (color), battom, 0)
 
 #______________________________________________________________________________________________________________________
 #индикаторы
@@ -391,6 +425,7 @@ def change_turn():
         turn_person = 0
     else:
         turn_person += 1
+    queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
     return turn_person
 
 
@@ -402,10 +437,12 @@ clock = pg.time.Clock()
 
 #______________________________________________________________________________________________________________________
 #отрисовка кнопок
-battom_blok()
+#блок кнопок
+button_blok()
 
-#крайняя правая кнопка
-battom(battom_blok_x + screen_X - 60, battom_blok_y + 5, 40, 40, (RED))
+#кнопки
+button_create('end turn', (RED), (RED), change_turn)
+button_create('exit', (LIGHT_BLUE), (LIGHT_BLUE), exit_game)
 
 
 #______________________________________________________________________________________________________________________
@@ -458,10 +495,9 @@ def explore():
 #создание пути передвижения
 #меняет позицию, если проверка прохождения была успешна
 #оно работает. Но надопонять в чем дело
-def cp():
+def cp(end):
     global grid, queue_person, turn_person, player
-    mouse_clik = get_mouse_pos()
-    goal = mouse_clik
+    goal = end
     path_head = goal
     path_segment = goal
     way = create_way(queue_person[turn_person].pos, path_head, path_segment)
@@ -512,6 +548,8 @@ def path():
 
 
 
+
+
 #основной цикл
 while True:
     #сделать функцию которая указывает какие элементы нужны обновлять постоянно, и обновляет их.
@@ -524,27 +562,24 @@ while True:
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
-            pg.quit()
-            sys.exit()
+            exit_game()
 
         if queue_person[turn_person].rule == 'pl':
-            if event.type == pg.MOUSEBUTTONDOWN: #слишком много IF
-                if event.button == 1:
-                    if event.pos[0] > 0 \
-                    and event.pos[0] < (cols * TILE) \
-                    and event.pos[1] > 0 \
-                    and event.pos[1] < (rows * TILE):
-                        cp()
-                    elif event.pos[0] > battom_blok_x + screen_X - 60 \
-                    and event.pos[0] < (battom_blok_x + screen_X - 60 + 40) \
-                    and event.pos[1] > battom_blok_y + 5 \
-                    and event.pos[1] < (battom_blok_y + 5 +40):
-                        change_turn()
-                        queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
-        elif  queue_person[turn_person].rule == 'AI':
-            cp()
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1: #слишком много IF
+                if event.pos[0] > 0 \
+                and event.pos[0] < (cols * TILE) \
+                and event.pos[1] > 0 \
+                and event.pos[1] < (rows * TILE):
+                    mouse_clik = get_mouse_pos()
+                    cp(mouse_clik)
+                elif  event.pos[0] > button_blok_x \
+                and event.pos[1] > button_blok_y:
+                    push_button(event.pos[0], event.pos[1])
+
+        elif queue_person[turn_person].rule == 'AI':
+            cp(queue_person[0].pos)
             change_turn()
-            queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
+
 
 
     pg.display.flip()
