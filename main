@@ -37,17 +37,17 @@ mainfield_Y = 0
 
 
 #матрица проходимости. Каждое число - шкала X.
-grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 #матрица клеток. Каждое число - шкала X.
 field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 #матрица картинок. Каждое число - шкала X.
 field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
 
 
-#список кнопок. Экземпляркласса, с координатами, размерами, картинками ипривязанной к ним командой
+#список кнопок. Экземпляр класса, с координатами, размерами, картинками ипривязанной к ним командой
 buttons = []
 
-
+#очередь персонажей
 queue_person = []
 turn_person = 0
 
@@ -159,51 +159,20 @@ class tile():
         self.diff = diff
         self.image = image
 
-#типы клеток
-def none(x, y):
-    global tile
-    tile.x_pos = x
-    tile.y_pos = y
-    tile.diff = 2
-    grid[tile.y_pos][tile.x_pos] = tile.diff
-    tile.type = "none"
-    field[tile.y_pos][tile.x_pos] = tile.type
-    tile.image = 'Grass1.png'
-    field_images[tile.y_pos][tile.x_pos] = tile.image
-
-def tree(x, y):
-    global tile
-    tile.x_pos = x
-    tile.y_pos = y
-    tile.diff = '-'
-    grid[tile.y_pos][tile.x_pos] = tile.diff
-    tile.type = "tree"
-    field[tile.y_pos][tile.x_pos] = tile.type
-    tile.image = 'Tree1.png'
-    field_images[tile.y_pos][tile.x_pos] = tile.image
-
-def stone(x, y):
-    global tile
-    tile.x_pos = x
-    tile.y_pos = y
-    tile.diff = 3
-    grid[tile.y_pos][tile.x_pos] = tile.diff
-    tile.type = "stone"
-    field[tile.y_pos][tile.x_pos] = tile.type
-    tile.image = 'rock1.png'
-    field_images[tile.y_pos][tile.x_pos] = tile.image
 
 
-def road(x, y):
-    global tile
-    tile.x_pos = x
-    tile.y_pos = y
-    tile.diff = 1
-    grid[tile.y_pos][tile.x_pos] = tile.diff
-    tile.type = "road"
-    field[tile.y_pos][tile.x_pos] = tile.type
-    tile.image = 'road1.jpg'
-    field_images[tile.y_pos][tile.x_pos] = tile.image
+none = tile("none", "none", "none", '-', 2, 'Grass1.png')
+tree = tile("none", "none", "tree", '-', '-', 'Tree1.png')
+stone = tile("none", "none", "stone", '-', 3, 'rock1.png')
+road = tile("none", "none", "road", '-', 1, 'road1.jpg')
+
+
+
+
+def create_tile(x, y, tile):
+    grid[y][x] = tile.diff
+    field[y][x] = tile
+    field_images[y][x] = tile.image
 
 
 #______________________________________________________________________________________________________________________
@@ -222,8 +191,10 @@ def create_battlefield(cols, rows):
             field_images[y].append(0)
             y += 1
 
+
 #потом заполняем его клетками. Заменяем пустые клетки
 def fill_battlefield(cols, rows):
+    global tile, rnd_type, stone
     x = -1
     for i in range(cols):
         x += 1
@@ -232,7 +203,8 @@ def fill_battlefield(cols, rows):
             y += 1
             f = random.choices(rnd_type, weights=[5, 1, 1])
             rand_func = random.choice(f)
-            rand_func(x, y)
+            create_tile(x, y, rand_func)
+
 
 #создание дороги. Доработать
 def crete_road():
@@ -243,8 +215,8 @@ def crete_road():
     way = create_way(start, end, path_segment)
     segment = -1
     for i in way:
-        road(way[segment][0], way[segment][1])
-        road(way[segment][0] + 1, way[segment][1])
+        create_tile(way[segment][0], way[segment][1], road)
+        create_tile(way[segment][0]+1, way[segment][1], road)
         segment -= 1
 
 
@@ -252,11 +224,14 @@ create_battlefield(cols, rows)
 fill_battlefield(cols, rows)
 crete_road()
 
+print(field)
+
+
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
 #в данном случае меняет стартовую клетку на пустую.
-def change_tile(tile, x, y):
-    tile(x, y)
-change_tile(none, start[0], start[1])
+def change_tile(x, y, tile):
+    create_tile(x, y, tile)
+change_tile(start[0], start[1], none)
 
 #______________________________________________________________________________________________________________________
 #Персонажи
@@ -459,7 +434,6 @@ button_create('exit', 'exit.jpg', 'exit.jpg', exit_game)
 def person_position():
     global TILE, queue_person, grid
     person = 0
-
     for i in queue_person:
         bg = pg.image.load(queue_person[person].image).convert()
         bg = pg.transform.scale(bg, (TILE, TILE))
@@ -470,7 +444,6 @@ def person_position():
         f1 = pg.font.Font(None, 24)
         text1 = f1.render(str(grid[queue_person[person].pos[1]][queue_person[person].pos[0]]), 1, (180, 0, 0))
         sc.blit(text1, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
-
         person += 1
 
 
@@ -488,7 +461,7 @@ def explore():
         tile_y = -1
         for r in range(rows):
             tile_y += 1
-            if field[tile_y][tile_x] != "none":
+            if field[tile_y][tile_x] != none:
                 bg = pg.image.load(field_images[tile_y][tile_x]).convert()
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
@@ -513,7 +486,6 @@ def cp(end):
     path_segment = goal
     way = create_way(queue_person[turn_person].pos, path_head, path_segment)
     way_limit = []
-
     x = -1
     for i in way:
         try:
