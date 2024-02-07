@@ -65,7 +65,7 @@ def get_circle(x, y):
 def get_neighbours(x, y):
     check_neighbour = lambda x, y: True if 0 <= x < cols and 0 <= y < rows else False
     ways = [-1, 0], [0, -1], [1, 0], [0, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]
-    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != '-']
+    return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (field[y + dy][x + dx].closed) != '+']
 
     #return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != '-']
 
@@ -162,7 +162,7 @@ class tile():
 
 
 none = tile("none", "none", "none", '-', 2, 'Grass1.png')
-tree = tile("none", "none", "tree", '-', '-', 'Tree1.png')
+tree = tile("none", "none", "tree", '+', '-', 'Tree1.png')
 stone = tile("none", "none", "stone", '-', 3, 'rock1.png')
 road = tile("none", "none", "road", '-', 1, 'road1.jpg')
 
@@ -206,6 +206,7 @@ def fill_battlefield(cols, rows):
             create_tile(x, y, rand_func)
 
 
+
 #создание дороги. Доработать
 def crete_road():
     end_road = random.randint(1, cols)
@@ -224,7 +225,6 @@ create_battlefield(cols, rows)
 fill_battlefield(cols, rows)
 crete_road()
 
-print(field)
 
 
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
@@ -232,6 +232,10 @@ print(field)
 def change_tile(x, y, tile):
     create_tile(x, y, tile)
 change_tile(start[0], start[1], none)
+
+
+
+
 
 #______________________________________________________________________________________________________________________
 #Персонажи
@@ -301,7 +305,6 @@ def button_create(name, act_img, inact_img, command):
     button1 = button(name, pos_X, pos_Y, size_X, size_Y, act_img, inact_img, command)
     buttons.append(button1)
 
-
     return buttons
 
 #нажатие кнопки. Проверка координат и выполнение функции кнопки
@@ -313,10 +316,8 @@ def push_button(x, y):
     for i in buttons:
         if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
             buttons[num_but].command()
-            print("1")
             break
         else:
-            print("0")
             num_but += 1
 
 
@@ -378,7 +379,9 @@ player_pos = (0, 7)
 player_image = 'knight1.jpg'
 
 player = person("knight", player_rule, player_hp, player_hp, player_dmg, player_arm, player_pen, player_act_point_max, player_act_point, player_pos, player_image)
-queue_person.append(player)
+queue_person.append(player) #добавление персонажа в список действующих персонажей
+change_tile(player_pos[0], player_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
+
 
 #противник
 enemy_rule = 'AI'
@@ -392,8 +395,10 @@ enemy_pos = (10, 7)
 enemy_image = 'gazebo.jpg'
 
 enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_pos, enemy_image)
-queue_person.append(enemy)
+queue_person.append(enemy) #добавление персонажа в список действующих персонажей
+change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
+#в дальнейшем, весь этот блок запихнуть в отдельную функцию. Что-то наверняка дублируется
 
 #______________________________________________________________________________________________________________________
 #смена хода
@@ -439,12 +444,19 @@ def person_position():
         bg = pg.transform.scale(bg, (TILE, TILE))
         sc.blit(bg, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
 
-        #grid[queue_person[person].pos[1]][queue_person[person].pos[0]] = 999
+        grid[queue_person[person].pos[1]][queue_person[person].pos[0]] = 999
 
+        #текст отрисовывает сложность клетки. Нужна для тестов
         f1 = pg.font.Font(None, 24)
         text1 = f1.render(str(grid[queue_person[person].pos[1]][queue_person[person].pos[0]]), 1, (180, 0, 0))
         sc.blit(text1, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
         person += 1
+
+
+
+
+        #grid[queue_person[person].pos][1]queue_person[person].pos][0] = 999
+
 
 
 #______________________________________________________________________________________________________________________
@@ -465,14 +477,24 @@ def explore():
                 bg = pg.image.load(field_images[tile_y][tile_x]).convert()
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
-                # f1 = pg.font.Font(None, 24)
-                # text1 = f1.render(str(tile_x-1) + '-' + str(tile_y-1), 1, (180, 0, 0))
-                # sc.blit(text1, (mainfield_X+TILE*(tile_x-1), mainfield_Y+TILE*(tile_y-1)))
+
+                #указание сложности клеток
+                f1 = pg.font.Font(None, 24)
+                text1 = f1.render(str(grid[tile_y][tile_x]), 1, (180, 0, 0))
+                sc.blit(text1, (tile_x * TILE, tile_y * TILE))
+
     for i in range(0, int(rows)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
     for j in range(0, int(cols)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
 
+    tile_x = -1
+    for t in range(cols):
+        tile_x += 1
+        tile_y = -1
+        for r in range(rows):
+            tile_y += 1
+            grid[tile_y][tile_x] = field[tile_y][tile_x].diff
 
 
 
@@ -480,7 +502,7 @@ def explore():
 #создание пути передвижения
 #меняет позицию, если проверка прохождения была успешна
 def cp(end):
-    global grid, queue_person, turn_person, player
+    global grid, queue_person, turn_person, player, field
     goal = end
     path_head = goal
     path_segment = goal
@@ -506,8 +528,9 @@ def cp(end):
                 queue_person[turn_person].pos = way_limit[-2]
         except:
             continue
+
     queue_person[turn_person].act_point = max(queue_person[turn_person].act_point, 0)
-    return queue_person, player
+    return queue_person, player, grid
 
 
 
