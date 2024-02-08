@@ -488,6 +488,7 @@ def explore():
     for j in range(0, int(cols)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
 
+    #это каждый раз вовзаращает стоимость клеток к стандарту. 
     tile_x = -1
     for t in range(cols):
         tile_x += 1
@@ -495,8 +496,6 @@ def explore():
         for r in range(rows):
             tile_y += 1
             grid[tile_y][tile_x] = field[tile_y][tile_x].diff
-
-
 
 
 #создание пути передвижения
@@ -507,28 +506,33 @@ def cp(end):
     path_head = goal
     path_segment = goal
     way = create_way(queue_person[turn_person].pos, path_head, path_segment)
-    way_limit = []
     x = -1
     for i in way:
         try:
-            if queue_person[turn_person].act_point >= 0:
-                x -= 1
-            else:
-                break
-            if heuristic(way[x], way[x+1]) == 1: #если клетки соседние по горизонтали
-                queue_person[turn_person].act_point -= grid[way[x][1]][way[x][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
-                way_limit.append(way[x])
-            elif heuristic(way[x], way[x+1]) == 2: #если клетки соседние по диагонали
-                queue_person[turn_person].act_point -= grid[way[x][1]][way[x][0]]*1.5 #добавляем сложность клетки в сумму сложностей пройденных клеток
-                way_limit.append(way[x])
+            if heuristic(way[x], way[x-1]) == 1: #если клетки соседние по горизонтали
+                queue_person[turn_person].act_point -= grid[way[x-1][1]][way[x-1][0]] #добавляем сложность клетки в сумму сложностей пройденных клеток
 
-            if path_head in way_limit:
-                queue_person[turn_person].pos = goal
+            elif heuristic(way[x], way[x-1]) == 2: #если клетки соседние по диагонали
+                queue_person[turn_person].act_point -= grid[way[x-1][1]][way[x-1][0]]*1.5 #добавляем сложность клетки в сумму сложностей пройденных клеток
+
+            if queue_person[turn_person].act_point < 0:
+                queue_person[turn_person].pos = way[x]
+                #это костыль. Сначала стоимость клетки вычитается из действий. Если кол-во действий становится меньше нуля, то цикл обрывается без перемещения.
+                #Но потраченные действия нужно вернуть. Нужно как-то иначе прописать код
+                if heuristic(way[x], way[x - 1]) == 1:  # если клетки соседние по горизонтали
+                    queue_person[turn_person].act_point += grid[way[x - 1][1]][way[x - 1][0]]  # добавляем сложность клетки в сумму сложностей пройденных клеток
+                elif heuristic(way[x], way[x - 1]) == 2:  # если клетки соседние по диагонали
+                    queue_person[turn_person].act_point += grid[way[x - 1][1]][way[x - 1][0]] * 1.5  # добавляем сложность клетки в сумму сложностей пройденных клеток
+                break
+            elif way[x] == way[0]:
+                x -= 1
+                queue_person[turn_person].pos = way[x]
+                break
             else:
-                queue_person[turn_person].pos = way_limit[-2]
+                x -= 1
+                queue_person[turn_person].pos = way[x]
         except:
             continue
-
     queue_person[turn_person].act_point = max(queue_person[turn_person].act_point, 0)
     return queue_person, player, grid
 
