@@ -283,7 +283,9 @@ class button():
         self.inact_color = inact_color
         self.command = command
 
-#еще костыль. Все кнопки отрисовываются, относительно координат предыдущей. пришлось добавть кнопку-заглушку.
+
+
+#Все кнопки отрисовываются, относительно координат предыдущей. пришлось добавть кнопку-заглушку.
 base_button = button('base', button_blok_x-55, button_blok_y+5, 40, 40, (111,111,11), (111,111,11), "None")
 buttons.append(base_button)
 
@@ -313,11 +315,14 @@ def push_button(x, y):
     global buttons
     num_but = 0
     for i in buttons:
-        if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
-            buttons[num_but].command()
-            break
-        else:
-            num_but += 1
+        try:
+            if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
+                buttons[num_but].command()
+                break
+            else:
+                num_but += 1
+        except:
+            continue
 
 
 
@@ -425,6 +430,7 @@ button_blok()
 #кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда
 button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn)
 button_create('exit', 'exit.jpg', 'exit.jpg', exit_game)
+button_create('attack', 'attack.jpg', 'attack.jpg', 'none')
 
 
 #______________________________________________________________________________________________________________________
