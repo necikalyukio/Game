@@ -58,8 +58,8 @@ def exit_game():
 
 
 #функция создания круга для "змейки"
-def get_circle(x, y, radius):
-    return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // radius
+def get_circle(x, y):
+    return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // 4
 
 #определить соседние клетки
 def get_neighbours(x, y):
@@ -498,12 +498,41 @@ def explore():
             grid[tile_y][tile_x] = field[tile_y][tile_x].diff
 
 
-#создание пути передвижения
-#меняет позицию, если проверка прохождения была успешна
 
+#находит новую позицию, с учетом запаса действий
 def cp(end):
+    global grid, queue_person, turn_person, player, field
+    goal = end
+    path_head = goal
+    path_segment = goal
+    way = create_way(queue_person[turn_person].pos, path_head, path_segment)
+    act_point = queue_person[turn_person].act_point
+    newpos = queue_person[turn_person].pos
+    x = -1
+    for i in way:
+        try:
+            act_point -= grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+            #добавляем сложность клетки в сумму сложностей пройденных клеток
+            #умножаем на коэф. 1.5 если клетки по диагонали
+            if act_point < 0:
+                newpos = way[x]
+                #это костыль. Сначала стоимость клетки вычитается из действий. Если кол-во действий становится меньше нуля, то цикл обрывается без перемещения.
+                #Но потраченные действия нужно вернуть. Нужно как-то иначе прописать код
+                act_point -= grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+            elif way[x] == way[0]:
+                x -= 1
+                newpos = way[x]
+            else:
+                x -= 1
+                newpos = way[x]
+        except:
+            continue
+    return newpos, act_point
+
+#меняет позицию
+def change_pos(end):
     end = end
-    newpos, act_point = path(end)
+    newpos, act_point = cp(end)
     queue_person[turn_person].pos = newpos
     queue_person[turn_person].act_point = act_point
 
@@ -514,51 +543,20 @@ def cp(end):
 # простыми словами
 # visited - словарь с списком соседей {(0, 6): None, (0, 5): (0, 6), (1, 6): (0, 6), (1, 5): (1, 6), (1, 7): (1, 6), (2, 7): (1, 7)}
 # в данном примере (2, 7) - это финальная точка. Цикл ниже перебирает клетки от ключа (2, 7) ищет привязанную к ней клетку (1, 7) и так далее пока не закончится.
-def path(end):
-    global grid, queue_person, turn_person, player, field
-    mouse_pos = end
+def path():
+    mouse_pos = get_mouse_pos()
     goal = mouse_pos
     path_segment = goal
     way = create_way(queue_person[turn_person].pos, mouse_pos, path_segment)
     segment = -1
-    act_point = queue_person[turn_person].act_point
-
-    #отрисовка всего пути
     for i in way:
         try:
-            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment], 6))
-            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0], 6))
+            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment]))
+            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0]))
             segment -= 1
         except:
             continue
 
-    newpos = queue_person[turn_person].pos
-    x = -1
-    for i in way:
-        try:
-            if heuristic(way[x], way[x - 1]) == 1:  # если клетки соседние по горизонтали + сложность
-                act_point -= grid[way[x - 1][1]][way[x - 1][0]]
-            elif heuristic(way[x], way[x - 1]) == 2:  # если клетки соседние по диагонали + сложность*1.5
-                act_point -= grid[way[x - 1][1]][way[x - 1][0]] * 1.5
-            if act_point < 0:
-                newpos = way[x]
-                pg.draw.circle(sc, pg.Color(10, 10, 10), *get_circle(*newpos, 4))
-                # это костыль. Сначала стоимость клетки вычитается из действий. Если кол-во действий становится меньше нуля, то цикл обрывается без перемещения.
-                # Но потраченные действия нужно вернуть. Нужно как-то иначе прописать код
-                if heuristic(way[x], way[x - 1]) == 1:
-                    act_point += grid[way[x - 1][1]][way[x - 1][0]]
-                elif heuristic(way[x], way[x - 1]) == 2:
-                    act_point += grid[way[x - 1][1]][way[x - 1][0]] * 1.5
-            elif way[x] == way[0]:
-                x -= 1
-                newpos = way[x]
-                pg.draw.circle(sc, pg.Color(10, 10, 10), *get_circle(*newpos, 4))
-            else:
-                x -= 1
-                newpos = way[x]
-        except:
-            continue
-    return newpos, act_point
 
 
 
@@ -569,7 +567,7 @@ while True:
     #например отрисовка пути нужна только при активации персонажа и только в бою. Вне данных условий, ее отключить
     explore()
     person_position()
-    path(get_mouse_pos())
+    path()
     indicator_speed() #это индикатор скорости. переместить в функцию которая обновляет индикаторы
     indicator_name_pers()
 
@@ -584,13 +582,13 @@ while True:
                 and event.pos[1] > 0 \
                 and event.pos[1] < (rows * TILE):
                     mouse_clik = get_mouse_pos()
-                    cp(mouse_clik)
+                    change_pos(mouse_clik)
                 elif  event.pos[0] > button_blok_x \
                 and event.pos[1] > button_blok_y:
                     push_button(event.pos[0], event.pos[1])
 
         elif queue_person[turn_person].rule == 'AI':
-            cp(queue_person[0].pos)
+            change_pos(queue_person[0].pos)
             change_turn()
 
 
