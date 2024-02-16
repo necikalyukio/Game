@@ -24,8 +24,8 @@ act_point = 20 #нужна для теста переменещения. Пот�
 start = (0, 7) #стартовая позиция. Потом заменить на позицию при размещении персонажей
 
 
-
-
+#временная задержка. Чем больше, тем медленнее. Сейчас 0, когда действий станет больше, добавить задержку
+FPS = 0
 
 #размер экрана
 screen_X = 1800
@@ -58,8 +58,8 @@ def exit_game():
 
 
 #функция создания круга для "змейки"
-def get_circle(x, y):
-    return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // 4
+def get_circle(x, y, radius):
+    return (x * TILE + TILE // 2, y * TILE + TILE // 2), TILE // radius
 
 #определить соседние клетки
 def get_neighbours(x, y):
@@ -67,23 +67,22 @@ def get_neighbours(x, y):
     ways = [-1, 0], [0, -1], [1, 0], [0, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]
     return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (field[y + dy][x + dx].closed) != '+']
 
-    #return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (grid[y + dy][x + dx]) != '-']
 
-
-
+def neighbour_tile(end, start):
+    neighbour_X = end[0] - max(min((end[0] - start[0]), 1),-1)
+    neighbour_y = end[1] - max(min((end[1] - start[1]), 1),-1)
+    print(neighbour_X, neighbour_y)
 
 
 def get_click_mouse_pos():
     x, y = pg.mouse.get_pos()
     grid_x, grid_y = x // TILE, y // TILE
-    #pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y)) #рисует круг на месте клика мыши
     click = pg.mouse.get_pressed()
     return (grid_x, grid_y) if click[0] else False
 
 def get_mouse_pos():
     x, y = pg.mouse.get_pos()
     grid_x, grid_y = x // TILE, y // TILE
-    #pg.draw.circle(sc, pg.Color('red'), *get_circle(grid_x, grid_y)) #рисует круг на месте клика мыши
     return (grid_x, grid_y)
 
 def heuristic(a, b):
@@ -518,7 +517,7 @@ def cp(end):
                 newpos = way[x]
                 #это костыль. Сначала стоимость клетки вычитается из действий. Если кол-во действий становится меньше нуля, то цикл обрывается без перемещения.
                 #Но потраченные действия нужно вернуть. Нужно как-то иначе прописать код
-                act_point -= grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+                act_point += grid[way[x - 1][1]][way[x - 1][0]] * min(heuristic(way[x], way[x - 1]), 1.5)
             elif way[x] == way[0]:
                 x -= 1
                 newpos = way[x]
@@ -551,12 +550,14 @@ def path():
     segment = -1
     for i in way:
         try:
-            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment]))
-            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0]))
+            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment], 8))
+            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0], 8))
             segment -= 1
         except:
             continue
 
+    newpos, act_point = cp(mouse_pos)
+    pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 4))
 
 
 
@@ -594,7 +595,7 @@ while True:
 
 
     pg.display.flip()
-    clock.tick(30)
+    clock.tick(FPS)
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
