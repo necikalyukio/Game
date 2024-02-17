@@ -94,11 +94,14 @@ def heuristic(a, b):
    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
+def click_bf(x, y):
+    check = x > 0 and x < (cols * TILE) and y > 0 and y < (rows * TILE)
+    return check
 
-def change_status():
-    global status
-    status = 'action'
-    return status
+def click_button_block(x, y):
+    check = x > button_blok_x and x < (button_blok_x + button_blok_x_end) and y > button_blok_y and y < (button_blok_y + button_blok_y_end)
+    return check
+
 
 
 # описание алгоритма на человеческом языке:
@@ -271,6 +274,9 @@ pg.init()
 button_blok_x = 10
 button_blok_y = screen_Y - 60
 
+button_blok_x_end = screen_X - button_blok_x - 10
+button_blok_y_end = screen_Y - button_blok_y - 10
+
 #скрытая кнопка.
 button_dark_x = 999999
 button_dark_y = 999999
@@ -278,7 +284,7 @@ button_dark_y = 999999
 
 
 def button_blok():
-    button_blok = pg.Rect(button_blok_x, button_blok_y, screen_X - 10, 50)
+    button_blok = pg.Rect(button_blok_x, button_blok_y, button_blok_x_end, button_blok_y_end)
     pg.draw.rect(sc, (GRAY), button_blok, 0)
 
 class button():
@@ -486,11 +492,11 @@ clock = pg.time.Clock()
 button_blok()
 
 #кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда
-def create_butoom():
+def create_buttom():
     global status
     button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn)
     button_create('exit', 'exit.jpg', 'exit.jpg', exit_game)
-    button_create('attack', 'attack.jpg', 'attack.jpg', change_status)
+    button_create('attack', 'attack.jpg', 'attack.jpg', attack)
     return status
 
 #______________________________________________________________________________________________________________________
@@ -618,14 +624,17 @@ def cp(end):
 #атака
 def attack():
     global status
+    status = 'action'
     mouse_pos = get_click_mouse_pos()
     person = 0
     for i in queue_person:
         try:
             if mouse_pos[0] == queue_person[person].pos[0] and mouse_pos[1] == queue_person[person].pos[1]:
-                queue_person[person].hp -= queue_person[turn_person].dmg*10
-                queue_person[turn_person].act_point -= 10
-                status = 'move'
+                if queue_person[turn_person].act_point - 10 >= 0:
+                    queue_person[person].hp -= queue_person[turn_person].dmg*10
+                    queue_person[turn_person].act_point -= 10
+                else:
+                    status = 'move'
             else:
                 person += 1
         except:
@@ -635,9 +644,8 @@ def attack():
 
 
 
-
 #элементы обновляемыепо требованию
-create_butoom()
+create_buttom()
 
 
 
@@ -646,7 +654,7 @@ create_butoom()
 def upgrade():
     explore()
     person_position()
-    path() #отрисовка пути. Могут быть ситуации, когда это не нужно и придется функцию перенести
+
     indicator_speed()  # это индикатор скорости. переместить в функцию которая обновляет индикаторы
     indicator_name_pers()
     ind_status()
@@ -664,19 +672,20 @@ while True:
 
         if queue_person[turn_person].rule == 'pl':
             if status == 'move':
+                path()  # отрисовка пути. Могут быть ситуации, когда это не нужно и придется функцию перенести
                 if event.type == pg.MOUSEBUTTONDOWN and event.button == 1: #слишком много IF
-                    if event.pos[0] > 0 \
-                    and event.pos[0] < (cols * TILE) \
-                    and event.pos[1] > 0 \
-                    and event.pos[1] < (rows * TILE):
+                    click_button_block(event.pos[0], event.pos[1])
+                    if click_bf(event.pos[0], event.pos[1]): #эта функция проверяет что клик мыши был на карте
                         mouse_clik = get_mouse_pos()
                         change_pos(mouse_clik)
 
-                    elif  event.pos[0] > button_blok_x \
-                    and event.pos[1] > button_blok_y:
+                    elif click_button_block(event.pos[0], event.pos[1]):
                         push_button(event.pos[0], event.pos[1])
             elif status == 'action':
-                attack()
+                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                    attack()
+                if event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
+                    status = 'move'
 
 
 
