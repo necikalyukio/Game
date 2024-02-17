@@ -10,13 +10,14 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (125, 125, 125)
 LIGHT_BLUE = (64, 128, 255)
+BLUE = (0, 0, 255)
 GREEN = (0, 200, 64)
 YELLOW = (225, 225, 0)
 PINK = (230, 50, 230)
 ForestGreen = (34, 139, 34)
 RED = (255, 0, 0)
 
-cols, rows = 23, 13 #количество клеток по горизонтали и вертикали
+cols, rows = 30, 20 #количество клеток по горизонтали и вертикали
 TILE = 50 #размер клетки
 
 #временные переменные
@@ -25,7 +26,7 @@ start = (0, 7) #стартовая позиция. Потом заменить �
 
 
 #временная задержка. Чем больше, тем медленнее. Сейчас 0, когда действий станет больше, добавить задержку
-FPS = 0
+FPS = 60
 
 #размер экрана
 screen_X = 1800
@@ -351,12 +352,46 @@ def indicator_name_pers():
     text1 = f1.render(str(queue_person[turn_person].name), 1, (180, 0, 0))
     sc.blit(text1, (indicator_blok_x, indicator_blok_y+100))
 
+#появление меню описания персонажа
+def description():
+    global queue_person
+    mouse_pos = get_mouse_pos()
+    person = 0
+    print(mouse_pos[0])
+
+    for i in queue_person:
+        try:
+            if mouse_pos[0] == queue_person[person].pos[0] and mouse_pos[1] == queue_person[person].pos[1]:
+                x = queue_person[person].pos[0]
+                y = queue_person[person].pos[1]
+
+                descr = pg.Rect(x * TILE + TILE + 10, y * TILE - 25, 100, 20)
+                pg.draw.rect(sc, (YELLOW), descr, 0)
+
+                #полоска здоровья
+                descr = pg.Rect(x * TILE, y * TILE + TILE, TILE * (queue_person[person].hp / queue_person[person].maxhp), 4)
+                pg.draw.rect(sc, (RED), descr, 0)
+                #полоска выносливости
+                descr = pg.Rect(x * TILE, y * TILE + TILE+5, TILE * (queue_person[person].power / queue_person[person].endurance_max), 4)
+                pg.draw.rect(sc, (BLUE), descr, 0)
+
+
+
+                for j in range(1):
+                    f1 = pg.font.Font(None, 24)
+                    text1 = f1.render(str(queue_person[person].name), 1, (180, 0, 0))
+                    sc.blit(text1, (x * TILE + TILE + 10, y * TILE - 25*(j+1)))
+            else:
+                person += 1
+        except:
+            continue
+
 
 
 #______________________________________________________________________________________________________________________
 #персонажи
 class person:
-    def __init__(self, name, rule, maxhp, hp, dmg, arm, pen, act_point_max, act_point, pos, image):
+    def __init__(self, name, rule, maxhp, hp, dmg, arm, pen, act_point_max, act_point, endurance_max, power, pos, image):
         self.name = name
         self.rule = rule
         self.maxhp = maxhp
@@ -366,6 +401,8 @@ class person:
         self.pen = pen
         self.act_point_max = act_point_max
         self.act_point = act_point
+        self.endurance_max = endurance_max
+        self.power = power
         self.pos = pos
         self.image = image
 
@@ -379,10 +416,12 @@ player_arm = random.randint(0, 3)
 player_pen = random.randint(0, 3)
 player_act_point_max = 20
 player_act_point = 20
+player_endurance_max = 200
+player_endurance = 200
 player_pos = (0, 7)
 player_image = 'knight1.jpg'
 
-player = person("knight", player_rule, player_hp, player_hp, player_dmg, player_arm, player_pen, player_act_point_max, player_act_point, player_pos, player_image)
+player = person("knight", player_rule, player_hp, player_hp, player_dmg, player_arm, player_pen, player_act_point_max, player_act_point, player_endurance_max, player_endurance, player_pos, player_image)
 queue_person.append(player) #добавление персонажа в список действующих персонажей
 change_tile(player_pos[0], player_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
@@ -395,10 +434,12 @@ enemy_arm = random.randint(0, 3)
 enemy_pen = random.randint(0, 3)
 enemy_act_point_max = 10
 enemy_act_point = 10
+enemy_endurance_max = 200
+enemy_endurance = 200
 enemy_pos = (10, 7)
 enemy_image = 'gazebo.jpg'
 
-enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_pos, enemy_image)
+enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_endurance_max, enemy_endurance, enemy_pos, enemy_image)
 queue_person.append(enemy) #добавление персонажа в список действующих персонажей
 change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
@@ -457,10 +498,6 @@ def person_position():
         sc.blit(text1, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
         person += 1
 
-
-
-
-        #grid[queue_person[person].pos][1]queue_person[person].pos][0] = 999
 
 
 
@@ -566,23 +603,24 @@ def path():
     pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 4))
 
 
-
+def upgrade():
+    explore()
+    person_position()
+    path() #отрисовка пути. Могут быть ситуации, когда это не нужно и придется функцию перенести
+    indicator_speed()  # это индикатор скорости. переместить в функцию которая обновляет индикаторы
+    indicator_name_pers()
+    description()
 
 #основной цикл
 while True:
-    #сделать функцию которая указывает какие элементы нужны обновлять постоянно, и обновляет их.
-    #например отрисовка пути нужна только при активации персонажа и только в бою. Вне данных условий, ее отключить
-    explore()
-    person_position()
-    path()
-    indicator_speed() #это индикатор скорости. переместить в функцию которая обновляет индикаторы
-    indicator_name_pers()
+    upgrade()
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
             exit_game()
 
         if queue_person[turn_person].rule == 'pl':
+
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1: #слишком много IF
                 if event.pos[0] > 0 \
                 and event.pos[0] < (cols * TILE) \
@@ -590,6 +628,7 @@ while True:
                 and event.pos[1] < (rows * TILE):
                     mouse_clik = get_mouse_pos()
                     change_pos(mouse_clik)
+
                 elif  event.pos[0] > button_blok_x \
                 and event.pos[1] > button_blok_y:
                     push_button(event.pos[0], event.pos[1])
