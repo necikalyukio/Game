@@ -52,6 +52,11 @@ buttons = []
 queue_person = []
 turn_person = 0
 
+#выбранный предмет
+select_item = 'none'
+
+
+
 #статус ситуации. Для "включения" нужных функций.
 status = 'move'
 
@@ -95,13 +100,19 @@ def heuristic(a, b):
 
 
 def click_bf(x, y):
-    check = x > 0 and x < (cols * TILE) and y > 0 and y < (rows * TILE)
-    return check
+    if x > 0 and x < (cols * TILE) and y > 0 and y < (rows * TILE):
+        mouse_clik = get_mouse_pos()
+        change_pos(mouse_clik)
+
 
 def click_button_block(x, y):
-    check = x > button_blok_x and x < (button_blok_x + button_blok_x_end) and y > button_blok_y and y < (button_blok_y + button_blok_y_end)
-    return check
+    if x > button_blok_x and x < (button_blok_x + button_blok_x_end) and y > button_blok_y and y < (button_blok_y + button_blok_y_end):
+        push_button(event.pos[0], event.pos[1])
 
+
+def check_target(mouse_pos, turn_person, target, range):
+    check = mouse_pos[0] == target[0] <= turn_person[0] + range >= turn_person[0] - range and mouse_pos[1] == target[1] <= turn_person[1] + range >= turn_person[1] - range
+    return check
 
 
 # описание алгоритма на человеческом языке:
@@ -288,7 +299,7 @@ def button_blok():
     pg.draw.rect(sc, (GRAY), button_blok, 0)
 
 class button():
-    def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command):
+    def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command, numb):
         self.name = name
         self.pos_X = pos_X
         self.pos_Y = pos_Y
@@ -297,15 +308,15 @@ class button():
         self.act_color = act_color
         self.inact_color = inact_color
         self.command = command
-
+        self.numb = numb
 
 
 #Все кнопки отрисовываются, относительно координат предыдущей. пришлось добавть кнопку-заглушку.
-base_button = button('base', button_blok_x-55, button_blok_y+5, 40, 40, (111,111,11), (111,111,11), "None")
+base_button = button('base', button_blok_x-55, button_blok_y+5, 40, 40, (111,111,11), (111,111,11), "None", "None")
 buttons.append(base_button)
 
 
-def button_create(name, act_img, inact_img, command):
+def button_create(name, act_img, inact_img, command, numb):
     global buttons, button
 
     pos_X = buttons[-1].pos_X + 60
@@ -318,7 +329,7 @@ def button_create(name, act_img, inact_img, command):
     bg = pg.transform.scale(bg, (size_X, size_Y))
     sc.blit(bg, (pos_X, pos_Y))
 
-    button1 = button(name, pos_X, pos_Y, size_X, size_Y, act_img, inact_img, command)
+    button1 = button(name, pos_X, pos_Y, size_X, size_Y, act_img, inact_img, command, numb)
     buttons.append(button1)
 
     return buttons
@@ -327,8 +338,11 @@ def button_create(name, act_img, inact_img, command):
 #как работает: снопки в списке кнопок и команд в списке команд расположены в одном порядке.
 #когда проверка координат успешна (позиция мыши "внутри" кнопки), выполняется функция под тем же номером что и кнопка
 def push_button(x, y):
-    global buttons
+    global buttons, select_item
     num_but = 0
+
+
+        # select_item = buttons[num_but].name
     for i in buttons:
         try:
             if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
@@ -338,6 +352,7 @@ def push_button(x, y):
                 num_but += 1
         except:
             continue
+    return select_item
 
 
 
@@ -411,7 +426,7 @@ def description():
 #______________________________________________________________________________________________________________________
 #персонажи
 class person:
-    def __init__(self, name, rule, maxhp, hp, dmg, arm, pen, act_point_max, act_point, endurance_max, power, pos, image):
+    def __init__(self, name, rule, maxhp, hp, dmg, arm, pen, act_point_max, act_point, power_max, power, pos, items, skills, image):
         self.name = name
         self.rule = rule
         self.maxhp = maxhp
@@ -421,9 +436,11 @@ class person:
         self.pen = pen
         self.act_point_max = act_point_max
         self.act_point = act_point
-        self.endurance_max = endurance_max
+        self.power_max = power_max
         self.power = power
         self.pos = pos
+        self.items = items
+        self.skills = skills
         self.image = image
 
 
@@ -436,12 +453,14 @@ player_arm = random.randint(0, 3)
 player_pen = random.randint(0, 3)
 player_act_point_max = 20
 player_act_point = 20
-player_endurance_max = 200
-player_endurance = 200
+player_power_max = 200
+player_power = 200
 player_pos = (0, 7)
+player_items = []
+player_skills = []
 player_image = 'knight1.jpg'
 
-player = person("knight", player_rule, player_hp, player_hp, player_dmg, player_arm, player_pen, player_act_point_max, player_act_point, player_endurance_max, player_endurance, player_pos, player_image)
+player = person("knight", player_rule, player_hp, player_hp, player_dmg, player_arm, player_pen, player_act_point_max, player_act_point, player_power_max, player_power, player_pos, player_items, player_skills, player_image)
 queue_person.append(player) #добавление персонажа в список действующих персонажей
 change_tile(player_pos[0], player_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
@@ -454,16 +473,104 @@ enemy_arm = random.randint(0, 3)
 enemy_pen = random.randint(0, 3)
 enemy_act_point_max = 10
 enemy_act_point = 10
-enemy_endurance_max = 200
-enemy_endurance = 200
+enemy_power_max = 200
+enemy_power = 200
 enemy_pos = (10, 7)
+enemy_items = []
+enemy_skills = []
 enemy_image = 'gazebo.jpg'
 
-enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_endurance_max, enemy_endurance, enemy_pos, enemy_image)
+enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_power_max, enemy_power, enemy_pos, enemy_items, enemy_skills, enemy_image)
 queue_person.append(enemy) #добавление персонажа в список действующих персонажей
 change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
 #в дальнейшем, весь этот блок запихнуть в отдельную функцию. Что-то наверняка дублируется
+
+
+
+#______________________________________________________________________________________________________________________
+#действия
+#атака
+def attack():
+    global status, select_item
+
+    status = 'action'
+    mouse_pos = get_click_mouse_pos()
+    person = 0
+    for i in queue_person:
+        try:
+            if check_target(mouse_pos, queue_person[turn_person].pos, queue_person[person].pos, select_item.range): #это проверка возможности атаковать цель
+                if queue_person[turn_person].act_point - select_item.act_cost >= 0:
+                    queue_person[person].hp -= select_item.dmg*10
+                    queue_person[turn_person].act_point -= select_item.act_cost
+                else:
+                    status = 'move'
+            else:
+                person += 1
+        except:
+            continue
+
+    return status
+
+
+
+
+#______________________________________________________________________________________________________________________
+#предметы
+class weapon:
+    def __init__(self, name, range, dmg, pen, act_cost, power_cost, image_act, image_inact, command, command_name):
+        self.name = name
+        self.range = range
+        self.dmg = dmg
+        self.pen = pen
+        self.act_cost = act_cost
+        self.power_cost = power_cost
+        self.image_act = image_act
+        self.image_inact = image_inact
+        self.command = command
+        self.command_name = command_name
+
+
+
+def prepear_attack():
+    global status, select_item
+    status = 'action'
+    select_item = player.items[1]
+    return status, select_item
+
+#безоружная атака
+no_arm_name = 'no_arm'
+no_arm_range = 1
+no_arm_dmg = random.randint(1, 3)
+no_arm_pen = random.randint(0, 1)
+no_arm_act_cost = 2
+no_arm_power_cost = 0
+no_arm_image_act = 'пустой.jpg'
+no_arm_image_inact = 'пустой.jpg'
+no_arm_command = prepear_attack
+no_arm_command_name = 'безоружная атака'
+
+no_arm = weapon(no_arm_name, no_arm_range, no_arm_dmg, no_arm_pen, no_arm_act_cost, no_arm_power_cost, no_arm_image_act, no_arm_image_inact, no_arm_command, no_arm_command_name)
+player.items.append(no_arm) #добавление предмета в инвентарь персонажа
+
+#меч
+might_name = 'might'
+might_range = 1
+might_dmg = random.randint(7, 10)
+might_pen = random.randint(0, 3)
+might_act_cost = 10
+might_power_cost = 0
+might_image_act = 'attack.jpg'
+might_image_inact = 'attack.jpg'
+might_command = prepear_attack
+might_command_name = 'удар мечом'
+
+might = weapon(might_name, might_range, might_dmg, might_pen, might_act_cost, might_power_cost, might_image_act, might_image_inact, might_command, might_command_name)
+player.items.append(might) #добавление предмета в инвентарь персонажа
+
+
+
+
 
 #______________________________________________________________________________________________________________________
 #смена хода
@@ -491,12 +598,15 @@ clock = pg.time.Clock()
 #блок кнопок
 button_blok()
 
-#кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда
+#кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда, номер в списке к которому обращаетя команда)
 def create_buttom():
     global status
-    button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn)
-    button_create('exit', 'exit.jpg', 'exit.jpg', exit_game)
-    button_create('attack', 'attack.jpg', 'attack.jpg', attack)
+    button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn, 1)
+    button_create('exit', 'exit.jpg', 'exit.jpg', exit_game, 1)
+    item = 0
+    for i in player.items:
+        button_create(player.items[item].name, player.items[item].image_act, player.items[item].image_inact, player.items[item].command, item)
+        item += 1
     return status
 
 #______________________________________________________________________________________________________________________
@@ -621,26 +731,7 @@ def cp(end):
 
 
 
-#атака
-def attack():
-    global status
-    status = 'action'
-    mouse_pos = get_click_mouse_pos()
-    person = 0
-    for i in queue_person:
-        try:
-            if mouse_pos[0] == queue_person[person].pos[0] and mouse_pos[1] == queue_person[person].pos[1]:
-                if queue_person[turn_person].act_point - 10 >= 0:
-                    queue_person[person].hp -= queue_person[turn_person].dmg*10
-                    queue_person[turn_person].act_point -= 10
-                else:
-                    status = 'move'
-            else:
-                person += 1
-        except:
-            continue
 
-    return status
 
 
 
@@ -673,18 +764,18 @@ while True:
         if queue_person[turn_person].rule == 'pl':
             if status == 'move':
                 path()  # отрисовка пути. Могут быть ситуации, когда это не нужно и придется функцию перенести
-                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1: #слишком много IF
+                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                    # эта функция проверяет что клик мыши был на карте
+                    # в случае успеха, перемещает объект по карте
+                    click_bf(event.pos[0], event.pos[1])
+                    # эта функция проверяет что клик мыши был на кнопках
+                    # в случае успеха, выполняет функцию кнопки
                     click_button_block(event.pos[0], event.pos[1])
-                    if click_bf(event.pos[0], event.pos[1]): #эта функция проверяет что клик мыши был на карте
-                        mouse_clik = get_mouse_pos()
-                        change_pos(mouse_clik)
 
-                    elif click_button_block(event.pos[0], event.pos[1]):
-                        push_button(event.pos[0], event.pos[1])
             elif status == 'action':
                 if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                     attack()
-                if event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
+                elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                     status = 'move'
 
 
