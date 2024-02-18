@@ -308,7 +308,8 @@ class button():
         self.act_color = act_color
         self.inact_color = inact_color
         self.command = command
-        self.numb = numb
+        self.numb = numb #это элемент который привязан к кнопке. Оружие винвентаре или навык в списке. 
+                         #потом при активации происходит поиск этого элемента по координатам кнопки.
 
 
 #Все кнопки отрисовываются, относительно координат предыдущей. пришлось добавть кнопку-заглушку.
@@ -339,10 +340,8 @@ def button_create(name, act_img, inact_img, command, numb):
 #когда проверка координат успешна (позиция мыши "внутри" кнопки), выполняется функция под тем же номером что и кнопка
 def push_button(x, y):
     global buttons, select_item
+    print(x)
     num_but = 0
-
-
-        # select_item = buttons[num_but].name
     for i in buttons:
         try:
             if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
@@ -492,9 +491,7 @@ change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки пер�
 #действия
 #атака
 def attack():
-    global status, select_item
-
-    status = 'action'
+    global status, select_ite
     mouse_pos = get_click_mouse_pos()
     person = 0
     for i in queue_person:
@@ -531,12 +528,21 @@ class weapon:
         self.command_name = command_name
 
 
-
+#при нажатии кнопки атаки, меняется статус игры и выбирается оружие. 
 def prepear_attack():
-    global status, select_item
+    global status, select_item, buttons
+    mouse_pos = pg.mouse.get_pos()
+    num_but = 0
+    for i in buttons:
+        if mouse_pos[0] > buttons[num_but].pos_X and mouse_pos[0] < buttons[num_but].pos_X + buttons[num_but].size_X and mouse_pos[1] > buttons[num_but].pos_Y and mouse_pos[1] < buttons[num_but].pos_Y + buttons[num_but].size_Y:
+            select_item = buttons[num_but].numb #выбитрается предмиет который привязан к кнопке
+            break
+        else:
+            num_but += 1
     status = 'action'
-    select_item = player.items[1]
     return status, select_item
+
+
 
 #безоружная атака
 no_arm_name = 'no_arm'
@@ -605,7 +611,7 @@ def create_buttom():
     button_create('exit', 'exit.jpg', 'exit.jpg', exit_game, 1)
     item = 0
     for i in player.items:
-        button_create(player.items[item].name, player.items[item].image_act, player.items[item].image_inact, player.items[item].command, item)
+        button_create(player.items[item].name, player.items[item].image_act, player.items[item].image_inact, player.items[item].command, player.items[item])
         item += 1
     return status
 
