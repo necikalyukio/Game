@@ -308,7 +308,7 @@ class button():
         self.act_color = act_color
         self.inact_color = inact_color
         self.command = command
-        self.numb = numb #это элемент который привязан к кнопке. Оружие винвентаре или навык в списке. 
+        self.numb = numb #это элемент который привязан к кнопке. Оружие винвентаре или навык в списке.
                          #потом при активации происходит поиск этого элемента по координатам кнопки.
 
 
@@ -528,7 +528,7 @@ class weapon:
         self.command_name = command_name
 
 
-#при нажатии кнопки атаки, меняется статус игры и выбирается оружие. 
+#при нажатии кнопки атаки, меняется статус игры и выбирается оружие.
 def prepear_attack():
     global status, select_item, buttons
     mouse_pos = pg.mouse.get_pos()
