@@ -79,8 +79,8 @@ def get_neighbours(x, y):
 
 
 def neighbour_tile(end, start):
-    neighbour_X = end[0] - max(min((end[0] - start[0]), 1),-1)
-    neighbour_y = end[1] - max(min((end[1] - start[1]), 1),-1)
+    neighbour_X = end[0] - max(min((end[0] - start[0]), 1), -1)
+    neighbour_y = end[1] - max(min((end[1] - start[1]), 1), -1)
     print(neighbour_X, neighbour_y)
 
 
