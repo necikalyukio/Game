@@ -3,9 +3,12 @@ from heapq import *
 import random
 import sys
 
-#если при старте мышь вне окна - появляется ошибка, так как не срабатывает переменная для определения позиции мыши. Исправить. Скорее всего через except
+
+#закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
+
 
 #переменные
+#region
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (125, 125, 125)
@@ -16,6 +19,8 @@ YELLOW = (225, 225, 0)
 PINK = (230, 50, 230)
 ForestGreen = (34, 139, 34)
 RED = (255, 0, 0)
+brown = (128, 64, 48)
+
 
 cols, rows = 30, 20 #количество клеток по горизонтали и вертикали
 TILE = 50 #размер клетки
@@ -23,7 +28,6 @@ TILE = 50 #размер клетки
 #временные переменные
 act_point = 20 #нужна для теста переменещения. Потом заменить на скорость персонажей
 start = (0, 7) #стартовая позиция. Потом заменить на позицию при размещении персонажей
-
 
 #временная задержка. Чем больше, тем медленнее. Сейчас 0, когда действий станет больше, добавить задержку
 FPS = 60
@@ -36,13 +40,16 @@ screen_Y = 1200
 mainfield_X = 0
 mainfield_Y = 0
 
-
 #матрица проходимости. Каждое число - шкала X.
 grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 #матрица клеток. Каждое число - шкала X.
-field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 #матрица картинок. Каждое число - шкала X.
-field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],[], [], [], [], [], [], [], [], [], []]
+field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
+#поля экрана
+parts_screen = []
+
+
 
 
 #список кнопок. Экземпляр класса, с координатами, размерами, картинками ипривязанной к ним командой
@@ -55,17 +62,26 @@ turn_person = 0
 #выбранный предмет
 select_item = 'none'
 
-
-
 #статус ситуации. Для "включения" нужных функций.
 status = 'move'
 
+
+#окно программы
+sc = pg.display.set_mode((screen_X, screen_Y))
+clock = pg.time.Clock()
+
+# endregion
+
+#сервисные функции
+#region
+
+#это необходимо для инициализации всех вложенных модулей
+pg.init()
 
 #выход из игры
 def exit_game():
     pg.quit()
     sys.exit()
-
 
 #функция создания круга для "змейки"
 def get_circle(x, y, radius):
@@ -77,52 +93,44 @@ def get_neighbours(x, y):
     ways = [-1, 0], [0, -1], [1, 0], [0, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]
     return [((grid[y + dy][x + dx]), (x + dx, y + dy)) for dx, dy in ways if check_neighbour(x + dx, y + dy) and (field[y + dy][x + dx].closed) != '+']
 
-
-def neighbour_tile(end, start):
-    neighbour_X = end[0] - max(min((end[0] - start[0]), 1), -1)
-    neighbour_y = end[1] - max(min((end[1] - start[1]), 1), -1)
-    print(neighbour_X, neighbour_y)
-
-
+#заменить значение координат клика мыши на номера клеток
 def get_click_mouse_pos():
     x, y = pg.mouse.get_pos()
     grid_x, grid_y = x // TILE, y // TILE
     click = pg.mouse.get_pressed()
     return (grid_x, grid_y) if click[0] else False
 
+#заменить значение координат мыши на номера клеток
 def get_mouse_pos():
     x, y = pg.mouse.get_pos()
     grid_x, grid_y = x // TILE, y // TILE
     return (grid_x, grid_y)
 
+#проверка: соседняя клетка по иагонали или вертикаль/горизонталь
 def heuristic(a, b):
    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
+
+#клик мыши был на игровом поле
 def click_bf(x, y):
     if x > 0 and x < (cols * TILE) and y > 0 and y < (rows * TILE):
         mouse_clik = get_mouse_pos()
         change_pos(mouse_clik)
 
-
+#клик мыши был на поле с нопками
 def click_button_block(x, y):
     if x > button_blok_x and x < (button_blok_x + button_blok_x_end) and y > button_blok_y and y < (button_blok_y + button_blok_y_end):
         push_button(event.pos[0], event.pos[1])
 
 
-def check_target(mouse_pos, turn_person, target, range):
-    check = mouse_pos[0] == target[0] <= turn_person[0] + range >= turn_person[0] - range and mouse_pos[1] == target[1] <= turn_person[1] + range >= turn_person[1] - range
-    return check
 
+# endregion
 
-# описание алгоритма на человеческом языке:
-# (start, goal) - стартовая клетка (сначала именно старт, а потом клетка от которой идет текущий расчет), указанная клетка
+#алгоритм диикстры
+#region
 
-# в queue формируются маршруты - последние клетки с ценой по каждому из возможных направлений
-# из queue выбирается маршрут с наименьшей ценой и проверяются его соседи (цена соседей + цена посещеннйо клетки (cost_visited[cur_node] + neigh_cost)), после чего добавляются в queue
-# и так далее пока не будет достигнута финальня точка
-# формируется 2 списка - общий cost_visited (в нем все пути) и финальный visited (в котором только кратчайший и выглядит он как словарь в котором ключ (клетка): значение (пред.клетка)
-
+#сам алгоритм диикстры
 def create_way(start, goal, path_segment):
     global grid
 
@@ -168,9 +176,58 @@ def create_way(start, goal, path_segment):
     way = way[:-1]
     return way
 
+#находит новую позицию, с учетом запаса действий
+def cp(end):
+    global grid, queue_person, turn_person, player, field
+    goal = end
+    path_head = goal
+    path_segment = goal
+    way = create_way(queue_person[turn_person].pos, path_head, path_segment)
+    act_point = queue_person[turn_person].act_point
+    newpos = queue_person[turn_person].pos
+    x = -1
+    for i in way:
+        try:
+            act_point -= grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+            #добавляем сложность клетки в сумму сложностей пройденных клеток
+            #умножаем на коэф. 1.5 если клетки по диагонали
+            if act_point < 0:
+                newpos = way[x]
+                #это костыль. Сначала стоимость клетки вычитается из действий. Если кол-во действий становится меньше нуля, то цикл обрывается без перемещения.
+                #Но потраченные действия нужно вернуть. Нужно как-то иначе прописать код
+                act_point += grid[way[x - 1][1]][way[x - 1][0]] * min(heuristic(way[x], way[x - 1]), 1.5)
+            elif way[x] == way[0]:
+                x -= 1
+                newpos = way[x]
+            else:
+                x -= 1
+                newpos = way[x]
+        except:
+            continue
+    return newpos, act_point
 
+#показывает путь без изменения позиции
+def path():
+    mouse_pos = get_mouse_pos()
+    goal = mouse_pos
+    path_segment = goal
+    way = create_way(queue_person[turn_person].pos, mouse_pos, path_segment)
+    segment = -1
+    for i in way:
+        try:
+            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment], 8))
+            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0], 8))
+            segment -= 1
+        except:
+            continue
 
-#______________________________________________________________________________________________________________________
+    newpos, act_point = cp(mouse_pos)
+    pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 4))
+
+# endregion
+
+#создание поля
+#region
 #клетка
 class tile():
     def __init__ (self, x_pos, y_pos, type, closed, diff, image):
@@ -180,16 +237,10 @@ class tile():
         self.closed = closed
         self.diff = diff
         self.image = image
-
-
-
 none = tile("none", "none", "none", '-', 2, 'Grass1.png')
 tree = tile("none", "none", "tree", '+', '-', 'Tree1.png')
 stone = tile("none", "none", "stone", '-', 3, 'rock1.png')
 road = tile("none", "none", "road", '-', 1, 'road1.jpg')
-
-
-
 
 def create_tile(x, y, tile):
     grid[y][x] = tile.diff
@@ -212,7 +263,8 @@ def create_battlefield(cols, rows):
             field[y].append(0)
             field_images[y].append(0)
             y += 1
-
+    BF_blok = ('battlefield', 0, 0, cols*TILE, rows*TILE)
+    parts_screen.append(BF_blok)
 
 #потом заполняем его клетками. Заменяем пустые клетки
 def fill_battlefield(cols, rows):
@@ -227,8 +279,6 @@ def fill_battlefield(cols, rows):
             rand_func = random.choice(f)
             create_tile(x, y, rand_func)
 
-
-
 #создание дороги. Доработать
 def crete_road():
     end_road = random.randint(1, cols)
@@ -242,11 +292,47 @@ def crete_road():
         create_tile(way[segment][0]+1, way[segment][1], road)
         segment -= 1
 
-
 create_battlefield(cols, rows)
 fill_battlefield(cols, rows)
 crete_road()
 
+
+#отрисовка поля согласно созданной карте create_battlefield()
+def explore():
+    global TILE, cols, rows, mainfield_X, mainfield_Y
+    mainfield_X_end = mainfield_X + cols * TILE
+    mainfield_Y_end = mainfield_Y + rows * TILE
+    main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
+    pg.draw.rect(sc, (GREEN), main, 0)
+    tile_x = -1
+    for t in range(cols):
+        tile_x += 1
+        tile_y = -1
+        for r in range(rows):
+            tile_y += 1
+            if field[tile_y][tile_x] != none:
+                bg = pg.image.load(field_images[tile_y][tile_x]).convert()
+                bg = pg.transform.scale(bg, (TILE, TILE))
+                sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
+
+                #указание сложности клеток
+                f1 = pg.font.Font(None, 24)
+                text1 = f1.render(str(grid[tile_y][tile_x]), 1, (180, 0, 0))
+                sc.blit(text1, (tile_x * TILE, tile_y * TILE))
+
+    for i in range(0, int(rows)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
+    for j in range(0, int(cols)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
+
+    #это каждый раз вовзаращает стоимость клеток к стандарту.
+    tile_x = -1
+    for t in range(cols):
+        tile_x += 1
+        tile_y = -1
+        for r in range(rows):
+            tile_y += 1
+            grid[tile_y][tile_x] = field[tile_y][tile_x].diff
 
 
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
@@ -256,30 +342,10 @@ def change_tile(x, y, tile):
 change_tile(start[0], start[1], none)
 
 
-
-
-
-#______________________________________________________________________________________________________________________
-#Персонажи
-
-
-
-
-
-
-
-
-
-#______________________________________________________________________________________________________________________
-
-#это необходимо для инициализации всех вложенных модулей
-pg.init()
-
-
-#______________________________________________________________________________________________________________________
+# endregion
 
 #кнопки
-
+#region
 
 #блок кнопок
 button_blok_x = 10
@@ -288,15 +354,20 @@ button_blok_y = screen_Y - 60
 button_blok_x_end = screen_X - button_blok_x - 10
 button_blok_y_end = screen_Y - button_blok_y - 10
 
+button_blok = ('button_blok', button_blok_x, button_blok_y, button_blok_x+button_blok_x_end, button_blok_y+button_blok_y_end)
+parts_screen.append(button_blok)
+
 #скрытая кнопка.
 button_dark_x = 999999
 button_dark_y = 999999
 
-
-
+#создать блок кнопок
 def button_blok():
     button_blok = pg.Rect(button_blok_x, button_blok_y, button_blok_x_end, button_blok_y_end)
     pg.draw.rect(sc, (GRAY), button_blok, 0)
+
+#отрисовка блок кнопок
+button_blok()
 
 class button():
     def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command, numb):
@@ -336,11 +407,8 @@ def button_create(name, act_img, inact_img, command, numb):
     return buttons
 
 #нажатие кнопки. Проверка координат и выполнение функции кнопки
-#как работает: снопки в списке кнопок и команд в списке команд расположены в одном порядке.
-#когда проверка координат успешна (позиция мыши "внутри" кнопки), выполняется функция под тем же номером что и кнопка
 def push_button(x, y):
     global buttons, select_item
-    print(x)
     num_but = 0
     for i in buttons:
         try:
@@ -353,44 +421,64 @@ def push_button(x, y):
             continue
     return select_item
 
+#кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда, номер в списке к которому обращаетя команда)
+def create_buttom():
+    global status
+    button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn, 1)
+    button_create('exit', 'exit.jpg', 'exit.jpg', exit_game, 1)
+    item = 0
+    for i in player.items:
+        button_create(player.items[item].name, player.items[item].image_act, player.items[item].image_inact, player.items[item].command, player.items[item])
+        item += 1
+    return status
 
 
-#______________________________________________________________________________________________________________________
+# endregion
+
 #индикаторы
-
+#region
 #блок индикаторов
-indicator_blok_x = screen_X - 100
-indicator_blok_y = screen_Y - screen_Y + 20
+indicator_blok_x = cols*TILE+10
+indicator_blok_y = 0
+indicator_blok_x_end = screen_X - indicator_blok_x - 10
+indicator_blok_y_end = rows*TILE
 
+indicator_blok = ('indicator_blok', indicator_blok_x, indicator_blok_y, indicator_blok_x+indicator_blok_x_end, indicator_blok_y+indicator_blok_y_end)
+parts_screen.append(indicator_blok)
 
+#отрисовка блок кнопок
+def indicator_blok():
+    indicator_blok = pg.Rect(indicator_blok_x, indicator_blok_y, indicator_blok_x_end, indicator_blok_y_end)
+    pg.draw.rect(sc, (brown), indicator_blok, 0)
+indicator_blok()
 
 
 def indicator_speed():
     global player, queue_person, turn_person
-    indicator_speed = pg.Rect(indicator_blok_x, indicator_blok_y, screen_X - 10, 50)
+    indicator_speed = pg.Rect(indicator_blok_x+10, indicator_blok_y, indicator_blok_x_end - 20, 50)
     pg.draw.rect(sc, (YELLOW), indicator_speed, 0)
 
     f1 = pg.font.Font(None, 48)
     text1 = f1.render(str(queue_person[turn_person].act_point), 1, (180, 0, 0))
-    sc.blit(text1, (indicator_blok_x, indicator_blok_y))
+    sc.blit(text1, (indicator_blok_x+10, indicator_blok_y))
 
 def indicator_name_pers():
     global player, queue_person, turn_person
-    indicator_speed = pg.Rect(indicator_blok_x, indicator_blok_y+100, screen_X - 10, 50)
+    indicator_speed = pg.Rect(indicator_blok_x+10, indicator_blok_y+100, indicator_blok_x_end - 20, 50)
     pg.draw.rect(sc, (YELLOW), indicator_speed, 0)
 
     f1 = pg.font.Font(None, 48)
     text1 = f1.render(str(queue_person[turn_person].name), 1, (180, 0, 0))
-    sc.blit(text1, (indicator_blok_x, indicator_blok_y+100))
+    sc.blit(text1, (indicator_blok_x+10, indicator_blok_y+100))
 
 def ind_status():
     global status
-    indicator_speed = pg.Rect(indicator_blok_x, indicator_blok_y + 200, screen_X - 10, 50)
+    indicator_speed = pg.Rect(indicator_blok_x+10, indicator_blok_y + 200, indicator_blok_x_end - 20, 50)
     pg.draw.rect(sc, (YELLOW), indicator_speed, 0)
 
     f1 = pg.font.Font(None, 48)
     text1 = f1.render(str(status), 1, (180, 0, 0))
-    sc.blit(text1, (indicator_blok_x, indicator_blok_y + 200))
+    sc.blit(text1, (indicator_blok_x+10, indicator_blok_y + 200))
 
 
 #появление меню описания персонажа
@@ -420,10 +508,11 @@ def description():
         except:
             continue
 
+# endregion
 
-
-#______________________________________________________________________________________________________________________
 #персонажи
+#region
+
 class person:
     def __init__(self, name, rule, maxhp, hp, dmg, arm, pen, act_point_max, act_point, power_max, power, pos, items, skills, image):
         self.name = name
@@ -483,12 +572,27 @@ enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, e
 queue_person.append(enemy) #добавление персонажа в список действующих персонажей
 change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
-#в дальнейшем, весь этот блок запихнуть в отдельную функцию. Что-то наверняка дублируется
 
+#позиция персонажа
+def person_position():
+    global TILE, queue_person, grid
+    person = 0
+    for i in queue_person:
+        if queue_person[person].hp > 0:
+            bg = pg.image.load(queue_person[person].image).convert()
+            bg = pg.transform.scale(bg, (TILE, TILE))
+            sc.blit(bg, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
 
+            grid[queue_person[person].pos[1]][queue_person[person].pos[0]] = 999
+            person += 1
 
-#______________________________________________________________________________________________________________________
+# endregion
+
 #действия
+#region
+
+#check_target(mouse_pos, queue_person[turn_person].pos, queue_person[person].pos, select_item.range_max, select_item.range_min): #это проверка возможности атаковать цель
+
 #атака
 def attack():
     global status, select_ite
@@ -496,12 +600,13 @@ def attack():
     person = 0
     for i in queue_person:
         try:
-            if check_target(mouse_pos, queue_person[turn_person].pos, queue_person[person].pos, select_item.range): #это проверка возможности атаковать цель
-                if queue_person[turn_person].act_point - select_item.act_cost >= 0:
-                    queue_person[person].hp -= select_item.dmg*10
-                    queue_person[turn_person].act_point -= select_item.act_cost
-                else:
-                    status = 'move'
+            if queue_person[person].pos == mouse_pos: #это проверка чтоклик был по противнику
+                if heuristic(queue_person[turn_person].pos, queue_person[person].pos) <= select_item.range_max and heuristic(queue_person[turn_person].pos, queue_person[person].pos) >= select_item.range_min: #это проверка возможности атаковать цель
+                    if queue_person[turn_person].act_point - select_item.act_cost >= 0: #это проверка что хватает очков действий
+                        queue_person[person].hp -= select_item.dmg*10
+                        queue_person[turn_person].act_point -= select_item.act_cost
+                    else:
+                        status = 'move'
             else:
                 person += 1
         except:
@@ -509,15 +614,33 @@ def attack():
 
     return status
 
+#меняет позицию
+def change_pos(end):
+    end = end
+    newpos, act_point = cp(end)
+    queue_person[turn_person].pos = newpos
+    queue_person[turn_person].act_point = act_point
 
 
+#смена хода
+def change_turn():
+    global turn_person, queue_person
+    if queue_person[-1] == queue_person[turn_person]:
+        turn_person = 0
+    else:
+        turn_person += 1
+    queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
+    return turn_person
 
-#______________________________________________________________________________________________________________________
+# endregion
+
 #предметы
+#region
 class weapon:
-    def __init__(self, name, range, dmg, pen, act_cost, power_cost, image_act, image_inact, command, command_name):
+    def __init__(self, name, range_min, range_max, dmg, pen, act_cost, power_cost, image_act, image_inact, command, command_name):
         self.name = name
-        self.range = range
+        self.range_min = range_min
+        self.range_max = range_max
         self.dmg = dmg
         self.pen = pen
         self.act_cost = act_cost
@@ -526,7 +649,6 @@ class weapon:
         self.image_inact = image_inact
         self.command = command
         self.command_name = command_name
-
 
 #при нажатии кнопки атаки, меняется статус игры и выбирается оружие.
 def prepear_attack():
@@ -543,10 +665,11 @@ def prepear_attack():
     return status, select_item
 
 
-
 #безоружная атака
+#region
 no_arm_name = 'no_arm'
-no_arm_range = 1
+no_arm_range_min = 0
+no_arm_range_max = 1
 no_arm_dmg = random.randint(1, 3)
 no_arm_pen = random.randint(0, 1)
 no_arm_act_cost = 2
@@ -555,200 +678,61 @@ no_arm_image_act = 'пустой.jpg'
 no_arm_image_inact = 'пустой.jpg'
 no_arm_command = prepear_attack
 no_arm_command_name = 'безоружная атака'
+# endregion
 
-no_arm = weapon(no_arm_name, no_arm_range, no_arm_dmg, no_arm_pen, no_arm_act_cost, no_arm_power_cost, no_arm_image_act, no_arm_image_inact, no_arm_command, no_arm_command_name)
+no_arm = weapon(no_arm_name, no_arm_range_min, no_arm_range_max, no_arm_dmg, no_arm_pen, no_arm_act_cost, no_arm_power_cost, no_arm_image_act, no_arm_image_inact, no_arm_command, no_arm_command_name)
 player.items.append(no_arm) #добавление предмета в инвентарь персонажа
 
 #меч
+#region
 might_name = 'might'
-might_range = 1
+might_range_min = 0
+might_range_max = 1
 might_dmg = random.randint(7, 10)
 might_pen = random.randint(0, 3)
 might_act_cost = 10
 might_power_cost = 0
-might_image_act = 'attack.jpg'
-might_image_inact = 'attack.jpg'
+might_image_act = 'attack_might.jpg'
+might_image_inact = 'attack_might.jpg'
 might_command = prepear_attack
 might_command_name = 'удар мечом'
+# endregion
 
-might = weapon(might_name, might_range, might_dmg, might_pen, might_act_cost, might_power_cost, might_image_act, might_image_inact, might_command, might_command_name)
+might = weapon(might_name, might_range_min, might_range_max, might_dmg, might_pen, might_act_cost, might_power_cost, might_image_act, might_image_inact, might_command, might_command_name)
 player.items.append(might) #добавление предмета в инвентарь персонажа
 
 
+#лук
+#region
+bow_name = 'bow'
+bow_range_min = 3
+bow_range_max = 10
+bow_dmg = random.randint(7, 10)
+bow_pen = random.randint(0, 3)
+bow_act_cost = 10
+bow_power_cost = 0
+bow_image_act = 'shot_bow.jpg'
+bow_image_inact = 'shot_bow.jpg'
+bow_command = prepear_attack
+bow_command_name = 'удар мечом'
+# endregion
+
+bow = weapon(bow_name, bow_range_min, bow_range_max, bow_dmg, bow_pen, bow_act_cost, bow_power_cost, bow_image_act, bow_image_inact, bow_command, bow_command_name)
+player.items.append(bow) #добавление предмета в инвентарь персонажа
+
+
+# endregion
 
 
 
-#______________________________________________________________________________________________________________________
-#смена хода
-def change_turn():
-    global turn_person, queue_person
-    if queue_person[-1] == queue_person[turn_person]:
-        turn_person = 0
-    else:
-        turn_person += 1
-    queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
-    return turn_person
-
-
-
-
-
-#______________________________________________________________________________________________________________________
-
-#окно программы
-sc = pg.display.set_mode((screen_X, screen_Y))
-clock = pg.time.Clock()
-
-#______________________________________________________________________________________________________________________
-#отрисовка кнопок
-#блок кнопок
-button_blok()
-
-#кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда, номер в списке к которому обращаетя команда)
-def create_buttom():
-    global status
-    button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn, 1)
-    button_create('exit', 'exit.jpg', 'exit.jpg', exit_game, 1)
-    item = 0
-    for i in player.items:
-        button_create(player.items[item].name, player.items[item].image_act, player.items[item].image_inact, player.items[item].command, player.items[item])
-        item += 1
-    return status
-
-#______________________________________________________________________________________________________________________
-#индикаторы отрисовка
-
-
-
-#______________________________________________________________________________________________________________________
-#позиция персонажа
-#
-def person_position():
-    global TILE, queue_person, grid
-    person = 0
-    for i in queue_person:
-        if queue_person[person].hp > 0:
-            bg = pg.image.load(queue_person[person].image).convert()
-            bg = pg.transform.scale(bg, (TILE, TILE))
-            sc.blit(bg, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
-
-            grid[queue_person[person].pos[1]][queue_person[person].pos[0]] = 999
-            person += 1
-
-
-
-
-#______________________________________________________________________________________________________________________
-#отрисовка поля согласно созданной карте create_battlefield()
-def explore():
-    global TILE, cols, rows, mainfield_X, mainfield_Y
-    mainfield_X_end = mainfield_X + cols * TILE
-    mainfield_Y_end = mainfield_Y + rows * TILE
-    main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
-    pg.draw.rect(sc, (GREEN), main, 0)
-    tile_x = -1
-    for t in range(cols):
-        tile_x += 1
-        tile_y = -1
-        for r in range(rows):
-            tile_y += 1
-            if field[tile_y][tile_x] != none:
-                bg = pg.image.load(field_images[tile_y][tile_x]).convert()
-                bg = pg.transform.scale(bg, (TILE, TILE))
-                sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
-
-                #указание сложности клеток
-                f1 = pg.font.Font(None, 24)
-                text1 = f1.render(str(grid[tile_y][tile_x]), 1, (180, 0, 0))
-                sc.blit(text1, (tile_x * TILE, tile_y * TILE))
-
-    for i in range(0, int(rows)+1):
-        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
-    for j in range(0, int(cols)+1):
-        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
-
-    #это каждый раз вовзаращает стоимость клеток к стандарту.
-    tile_x = -1
-    for t in range(cols):
-        tile_x += 1
-        tile_y = -1
-        for r in range(rows):
-            tile_y += 1
-            grid[tile_y][tile_x] = field[tile_y][tile_x].diff
-
-
-# показывает путь без изменения позиции
-def path():
-    mouse_pos = get_mouse_pos()
-    goal = mouse_pos
-    path_segment = goal
-    way = create_way(queue_person[turn_person].pos, mouse_pos, path_segment)
-    segment = -1
-    for i in way:
-        try:
-            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment], 8))
-            pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0], 8))
-            segment -= 1
-        except:
-            continue
-
-    newpos, act_point = cp(mouse_pos)
-    pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 4))
-
-#______________________________________________________________________________________________________________________
-#действия игрока и ИИ
-#меняет позицию
-def change_pos(end):
-    end = end
-    newpos, act_point = cp(end)
-    queue_person[turn_person].pos = newpos
-    queue_person[turn_person].act_point = act_point
-
-#находит новую позицию, с учетом запаса действий
-def cp(end):
-    global grid, queue_person, turn_person, player, field
-    goal = end
-    path_head = goal
-    path_segment = goal
-    way = create_way(queue_person[turn_person].pos, path_head, path_segment)
-    act_point = queue_person[turn_person].act_point
-    newpos = queue_person[turn_person].pos
-    x = -1
-    for i in way:
-        try:
-            act_point -= grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
-            #добавляем сложность клетки в сумму сложностей пройденных клеток
-            #умножаем на коэф. 1.5 если клетки по диагонали
-            if act_point < 0:
-                newpos = way[x]
-                #это костыль. Сначала стоимость клетки вычитается из действий. Если кол-во действий становится меньше нуля, то цикл обрывается без перемещения.
-                #Но потраченные действия нужно вернуть. Нужно как-то иначе прописать код
-                act_point += grid[way[x - 1][1]][way[x - 1][0]] * min(heuristic(way[x], way[x - 1]), 1.5)
-            elif way[x] == way[0]:
-                x -= 1
-                newpos = way[x]
-            else:
-                x -= 1
-                newpos = way[x]
-        except:
-            continue
-    return newpos, act_point
-
-
-
-
-
-
-
-
-#элементы обновляемыепо требованию
-create_buttom()
-
-
-
+#элементы обновляемые по требованию
+def upgrade_trigger():
+    create_buttom()
+upgrade_trigger()
 
 #постоянно обновляемые элемены
 def upgrade():
+
     explore()
     person_position()
 
@@ -756,7 +740,6 @@ def upgrade():
     indicator_name_pers()
     ind_status()
     description()
-
 
 
 
@@ -784,13 +767,9 @@ while True:
                 elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                     status = 'move'
 
-
-
         elif queue_person[turn_person].rule == 'AI':
             change_pos(queue_person[0].pos)
             change_turn()
-
-
 
     pg.display.flip()
     clock.tick(FPS)
@@ -798,3 +777,4 @@ while True:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             pg.quit()
+
