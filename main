@@ -106,11 +106,19 @@ def get_mouse_pos():
     grid_x, grid_y = x // TILE, y // TILE
     return (grid_x, grid_y)
 
-#проверка: соседняя клетка по иагонали или вертикаль/горизонталь
+#проверка: соседняя клетка по дагонали или вертикаль/горизонталь
 def heuristic(a, b):
    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-
+#смещение клетки на соседннюю, ближайшую к цели
+def neighbour_tile(a, b):
+    a_list = list(a) #непонял,почему тип стал неизменяемым. Пришлось менять тип на изменяемый, менять его, а потом вернуть тип обратно
+    if b[0]-a[0] != 0:
+        a_list[0] += int((b[0]-a[0])/abs(b[0]-a[0]))
+    if b[1]-a[1] != 0:
+        a_list[1] += int((b[1]-a[1])/abs(b[1]-a[1]))
+    a_list = tuple(a_list)
+    return a_list
 
 #клик мыши был на игровом поле
 def click_bf(x, y):
@@ -131,7 +139,7 @@ def click_button_block(x, y):
 #region
 
 #сам алгоритм диикстры
-def create_way(start, goal, path_segment):
+def create_way(start, goal, path_segment, diff_disc):
     global grid
 
     #этот блок перебирает все клетки и присваивает им сложность прохождения
@@ -154,7 +162,7 @@ def create_way(start, goal, path_segment):
         for neighbour in neighbours:
             neigh_cost, neigh_node = neighbour
             #если соседняя клетка по диагонали, ее стоимость прохождения больше
-            new_cost = cost_visited[cur_node] + neigh_cost * min(heuristic(cur_node, neigh_node),1.5)
+            new_cost = cost_visited[cur_node] + (neigh_cost * min(heuristic(cur_node, neigh_node),1.5)*diff_disc) #diff_disc - это скидка на стоимость прохождения в %
             if neigh_node not in cost_visited or new_cost < cost_visited[neigh_node]:
                 #на этом этапе:
                 #если новой клетки нет в списке посещенных (cost_visited)
@@ -182,7 +190,7 @@ def cp(end):
     goal = end
     path_head = goal
     path_segment = goal
-    way = create_way(queue_person[turn_person].pos, path_head, path_segment)
+    way = create_way(queue_person[turn_person].pos, path_head, path_segment, 1)
     act_point = queue_person[turn_person].act_point
     newpos = queue_person[turn_person].pos
     x = -1
@@ -211,7 +219,7 @@ def path():
     mouse_pos = get_mouse_pos()
     goal = mouse_pos
     path_segment = goal
-    way = create_way(queue_person[turn_person].pos, mouse_pos, path_segment)
+    way = create_way(queue_person[turn_person].pos, mouse_pos, path_segment, 1)
     segment = -1
     for i in way:
         try:
@@ -285,7 +293,7 @@ def crete_road():
     start = (random.randint(1, cols), 0)
     end = (end_road, rows-1)
     path_segment = (end_road, rows-1)
-    way = create_way(start, end, path_segment)
+    way = create_way(start, end, path_segment, 0.1)
     segment = -1
     for i in way:
         create_tile(way[segment][0], way[segment][1], road)
@@ -595,23 +603,29 @@ def person_position():
 
 #атака
 def attack():
-    global status, select_ite
+    global status
     mouse_pos = get_click_mouse_pos()
+
+    check = queue_person[turn_person].pos
+    max = select_item.range_max
+    min = select_item.range_min
+    range_wp = 0
+
     person = 0
     for i in queue_person:
-        try:
-            if queue_person[person].pos == mouse_pos: #это проверка чтоклик был по противнику
-                if heuristic(queue_person[turn_person].pos, queue_person[person].pos) <= select_item.range_max and heuristic(queue_person[turn_person].pos, queue_person[person].pos) >= select_item.range_min: #это проверка возможности атаковать цель
-                    if queue_person[turn_person].act_point - select_item.act_cost >= 0: #это проверка что хватает очков действий
-                        queue_person[person].hp -= select_item.dmg*10
-                        queue_person[turn_person].act_point -= select_item.act_cost
-                    else:
-                        status = 'move'
-            else:
-                person += 1
-        except:
-            continue
-
+        if queue_person[person].pos == mouse_pos: #это проверка что клик был по противнику
+            if queue_person[turn_person].act_point - select_item.act_cost >= 0:  #это проверка что хватает очков действий
+                for i in range(max):
+                    range_wp += 1
+                    check = neighbour_tile(check, queue_person[person].pos) #добавить еще условие - если клетка - непроходимая, то цикл прерывается
+                    if check == mouse_pos:
+                        if range_wp <= max and range_wp >= min: #это проверка что в рамках дистанции атаки
+                            queue_person[person].hp -= select_item.dmg * 10
+                            queue_person[turn_person].act_point -= select_item.act_cost
+                            check = queue_person[turn_person].pos
+                        break
+        else:
+            person += 1
     return status
 
 #меняет позицию
