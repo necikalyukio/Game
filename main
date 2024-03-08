@@ -222,12 +222,10 @@ def path():
     goal = mouse_pos
     path_segment = goal
     way = create_way(queue_person[turn_person].pos, mouse_pos, path_segment, 1)
-    segment = -1
     for i in way:
         try:
-            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*way[segment], 8))
+            pg.draw.circle(sc, pg.Color('blue'), *get_circle(*i, 8))
             pg.draw.circle(sc, pg.Color('magenta'), *get_circle(*way[0], 8))
-            segment -= 1
         except:
             continue
 
@@ -380,7 +378,7 @@ def button_blok():
 button_blok()
 
 class button():
-    def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command, numb):
+    def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command, item):
         self.name = name
         self.pos_X = pos_X
         self.pos_Y = pos_Y
@@ -389,7 +387,7 @@ class button():
         self.act_color = act_color
         self.inact_color = inact_color
         self.command = command
-        self.numb = numb #это элемент который привязан к кнопке. Оружие винвентаре или навык в списке.
+        self.item = item #это элемент который привязан к кнопке. Оружие в инвентаре.
                          #потом при активации происходит поиск этого элемента по координатам кнопки.
 
 
@@ -398,7 +396,7 @@ base_button = button('base', button_blok_x-55, button_blok_y+5, 40, 40, (111,111
 buttons.append(base_button)
 
 
-def button_create(name, act_img, inact_img, command, numb):
+def button_create(name, act_img, inact_img, command, item):
     global buttons, button
 
     pos_X = buttons[-1].pos_X + 60
@@ -411,7 +409,7 @@ def button_create(name, act_img, inact_img, command, numb):
     bg = pg.transform.scale(bg, (size_X, size_Y))
     sc.blit(bg, (pos_X, pos_Y))
 
-    button1 = button(name, pos_X, pos_Y, size_X, size_Y, act_img, inact_img, command, numb)
+    button1 = button(name, pos_X, pos_Y, size_X, size_Y, act_img, inact_img, command, item)
     buttons.append(button1)
 
     return buttons
@@ -419,28 +417,25 @@ def button_create(name, act_img, inact_img, command, numb):
 #нажатие кнопки. Проверка координат и выполнение функции кнопки
 def push_button(x, y):
     global buttons, select_item
-    num_but = 0
+
     for i in buttons:
         try:
-            if x > buttons[num_but].pos_X and x < buttons[num_but].pos_X + buttons[num_but].size_X and y > buttons[num_but].pos_Y and y < buttons[num_but].pos_Y + buttons[num_but].size_Y:
-                buttons[num_but].command()
+            if x > i.pos_X and x < i.pos_X + i.size_X and y > i.pos_Y and y < i.pos_Y + i.size_Y:
+                i.command()
                 break
-            else:
-                num_but += 1
         except:
             continue
     return select_item
 
-#кнопки (название, картинка если кнопка, активно, карнтинка если не активна, команда, номер в списке к которому обращаетя команда)
+#кнопки (название, картинка если кнопка активна, картинка если не активна, команда, номер в списке к которому обращаетя команда)
 def create_buttom():
-    global status
+    global status, queue_person, turn_person
     button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn, 1)
     button_create('exit', 'exit.jpg', 'exit.jpg', exit_game, 1)
-    item = 0
-    for i in player.items:
-        button_create(player.items[item].name, player.items[item].image_act, player.items[item].image_inact, player.items[item].command, player.items[item])
-        item += 1
+    for i in queue_person[turn_person].items: #создаются кнопки исходя из списка предметов активного персонажа
+        button_create(i.name, i.image_act, i.image_inact, i.command, i)
     return status
+
 
 
 # endregion
@@ -461,7 +456,6 @@ def indicator_blok():
     indicator_blok = pg.Rect(indicator_blok_x, indicator_blok_y, indicator_blok_x_end, indicator_blok_y_end)
     pg.draw.rect(sc, (brown), indicator_blok, 0)
 indicator_blok()
-
 
 def indicator_speed():
     global player, queue_person, turn_person
@@ -490,33 +484,24 @@ def ind_status():
     text1 = f1.render(str(status), 1, (180, 0, 0))
     sc.blit(text1, (indicator_blok_x+10, indicator_blok_y + 200))
 
-
-#появление меню описания персонажа
+#появление меню описания персонажа и полоски с здоровьем и выносливостью
 def description():
     global queue_person
     mouse_pos = get_mouse_pos()
-    person = 0
     for i in queue_person:
-        try:
-            if mouse_pos[0] == queue_person[person].pos[0] and mouse_pos[1] == queue_person[person].pos[1]:
-                x = queue_person[person].pos[0]
-                y = queue_person[person].pos[1]
-                descr = pg.Rect(x * TILE + TILE + 10, y * TILE - 25, 100, 20)
-                pg.draw.rect(sc, (YELLOW), descr, 0)
+        if mouse_pos[0] == i.pos[0] and mouse_pos[1] == i.pos[1]:
+                #полоска с именем
+            descr = pg.Rect(i.pos[0] * TILE + TILE + 10, i.pos[1] * TILE - 25, 100, 20)
+            pg.draw.rect(sc, (YELLOW), descr, 0)
+            f1 = pg.font.Font(None, 24)
+            text1 = f1.render(i.name, 1, (180, 0, 0))
+            sc.blit(text1, (i.pos[0] * TILE + TILE + 10, i.pos[1] * TILE - 25))
                 #полоска здоровья
-                descr = pg.Rect(x * TILE, y * TILE + TILE, TILE * (queue_person[person].hp / queue_person[person].maxhp), 4)
-                pg.draw.rect(sc, (RED), descr, 0)
+            descr = pg.Rect(i.pos[0] * TILE, i.pos[1] * TILE + TILE, TILE * (i.hp / i.maxhp), 4)
+            pg.draw.rect(sc, (RED), descr, 0)
                 #полоска выносливости
-                descr = pg.Rect(x * TILE, y * TILE + TILE+5, TILE * (queue_person[person].power / queue_person[person].endurance_max), 4)
-                pg.draw.rect(sc, (BLUE), descr, 0)
-                for j in range(1):
-                    f1 = pg.font.Font(None, 24)
-                    text1 = f1.render(str(queue_person[person].name), 1, (180, 0, 0))
-                    sc.blit(text1, (x * TILE + TILE + 10, y * TILE - 25*(j+1)))
-            else:
-                person += 1
-        except:
-            continue
+            descr = pg.Rect(i.pos[0] * TILE, i.pos[1] * TILE + TILE+5, TILE * (i.power / i.power_max), 4)
+            pg.draw.rect(sc, (BLUE), descr, 0)
 
 # endregion
 
@@ -583,7 +568,28 @@ queue_person.append(enemy) #добавление персонажа в спис�
 change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
 
 
-#позиция персонажа
+#противник
+enemy_rule = 'AI'
+enemy_hp = random.randint(170, 200)
+enemy_dmg = random.randint(7, 10)
+enemy_arm = random.randint(0, 3)
+enemy_pen = random.randint(0, 3)
+enemy_act_point_max = 10
+enemy_act_point = 10
+enemy_power_max = 200
+enemy_power = 200
+enemy_pos = (10, 17)
+enemy_items = []
+enemy_skills = []
+enemy_image = 'gazebo.jpg'
+
+enemy = person("gazebo2", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_power_max, enemy_power, enemy_pos, enemy_items, enemy_skills, enemy_image)
+queue_person.append(enemy) #добавление персонажа в список действующих персонажей
+change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
+
+
+
+#размещение персонажей на экране. Прикажждом обновлении экрана
 def person_position():
     global TILE, queue_person, grid
     person = 0
@@ -596,10 +602,12 @@ def person_position():
             grid[queue_person[person].pos[1]][queue_person[person].pos[0]] = 999
             person += 1
 
+
 # endregion
 
 #действия
 #region
+
 
 
 #атака
@@ -657,8 +665,6 @@ def target_check():
 def attack():
     global status
     mouse_pos = get_mouse_pos()
-    print(queue_person[turn_person].act_point)
-    print(select_item.act_cost)
 
     if queue_person[turn_person].act_point - select_item.act_cost < 0:  #это проверка что хватает очков действий
         print('недостаточно очков действий')
@@ -668,6 +674,9 @@ def attack():
                 if i.pos == mouse_pos:  #поиск параметров персонажа который атакован
                     i.hp -= select_item.dmg * 10
                     queue_person[turn_person].act_point -= select_item.act_cost
+                    if i.hp <= 0:#удаление персонажа из списка персонажей, если он убит
+                        queue_person.remove(i)
+
     return status
 # endregion
 
@@ -714,7 +723,7 @@ def prepear_attack():
     num_but = 0
     for i in buttons:
         if mouse_pos[0] > buttons[num_but].pos_X and mouse_pos[0] < buttons[num_but].pos_X + buttons[num_but].size_X and mouse_pos[1] > buttons[num_but].pos_Y and mouse_pos[1] < buttons[num_but].pos_Y + buttons[num_but].size_Y:
-            select_item = buttons[num_but].numb #выбитрается предмиет который привязан к кнопке
+            select_item = buttons[num_but].item #выбирается предмет который привязан к кнопке
             break
         else:
             num_but += 1
