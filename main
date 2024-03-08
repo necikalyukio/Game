@@ -262,30 +262,23 @@ rnd_type = [none, tree, stone]
 
 #сначала создаем "пустое" поле
 def create_battlefield(cols, rows):
-    x = 0
+
     for i in range(cols):
-        x += 1
-        y = 0
         for j in range(rows):
-            grid[y].append(0)
-            field[y].append(0)
-            field_images[y].append(0)
-            y += 1
+            grid[j].append(0)
+            field[j].append(0)
+            field_images[j].append(0)
     BF_blok = ('battlefield', 0, 0, cols*TILE, rows*TILE)
     parts_screen.append(BF_blok)
 
 #потом заполняем его клетками. Заменяем пустые клетки
 def fill_battlefield(cols, rows):
     global tile, rnd_type, stone
-    x = -1
     for i in range(cols):
-        x += 1
-        y = -1
         for j in range(rows):
-            y += 1
             f = random.choices(rnd_type, weights=[5, 1, 1])
             rand_func = random.choice(f)
-            create_tile(x, y, rand_func)
+            create_tile(i, j, rand_func)
 
 #создание дороги. Доработать
 def crete_road():
@@ -294,11 +287,10 @@ def crete_road():
     end = (end_road, rows-1)
     path_segment = (end_road, rows-1)
     way = create_way(start, end, path_segment, 0.1)
-    segment = -1
-    for i in way:
-        create_tile(way[segment][0], way[segment][1], road)
-        create_tile(way[segment][0]+1, way[segment][1], road)
-        segment -= 1
+    for i in reversed(way):
+        create_tile(i[0], i[1], road)
+        create_tile(i[0]+1, i[1], road)
+
 
 create_battlefield(cols, rows)
 fill_battlefield(cols, rows)
@@ -312,35 +304,28 @@ def explore():
     mainfield_Y_end = mainfield_Y + rows * TILE
     main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
     pg.draw.rect(sc, (GREEN), main, 0)
-    tile_x = -1
+
     for t in range(cols):
-        tile_x += 1
-        tile_y = -1
         for r in range(rows):
-            tile_y += 1
-            if field[tile_y][tile_x] != none:
-                bg = pg.image.load(field_images[tile_y][tile_x]).convert()
+            if field[r][t] != none:
+                bg = pg.image.load(field_images[r][t]).convert()
                 bg = pg.transform.scale(bg, (TILE, TILE))
-                sc.blit(bg, (mainfield_X + TILE * (tile_x), mainfield_Y + TILE * (tile_y)))
+                sc.blit(bg, (mainfield_X + TILE * (t), mainfield_Y + TILE * (r)))
 
                 #указание сложности клеток
                 f1 = pg.font.Font(None, 24)
-                text1 = f1.render(str(grid[tile_y][tile_x]), 1, (180, 0, 0))
-                sc.blit(text1, (tile_x * TILE, tile_y * TILE))
+                text1 = f1.render(str(grid[r][t]), 1, (180, 0, 0))
+                sc.blit(text1, (t * TILE, r * TILE))
 
     for i in range(0, int(rows)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
     for j in range(0, int(cols)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
 
-    #это каждый раз вовзаращает стоимость клеток к стандарту.
-    tile_x = -1
+    #это каждый раз возаращает стоимость клеток к стандарту.
     for t in range(cols):
-        tile_x += 1
-        tile_y = -1
         for r in range(rows):
-            tile_y += 1
-            grid[tile_y][tile_x] = field[tile_y][tile_x].diff
+            grid[r][t] = field[r][t].diff
 
 
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
