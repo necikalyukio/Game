@@ -2,6 +2,7 @@ import pygame as pg
 from heapq import *
 import random
 import sys
+import math
 
 
 #закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
@@ -112,13 +113,14 @@ def heuristic(a, b):
 
 #смещение клетки на соседннюю, ближайшую к цели
 def neighbour_tile(a, b):
-    a_list = list(a) #непонял,почему тип стал неизменяемым. Пришлось менять тип на изменяемый, менять его, а потом вернуть тип обратно
+    a_list = list(a) #не понял,почему тип стал неизменяемым. Пришлось менять тип на изменяемый, менять его, а потом вернуть тип обратно
     if b[0]-a[0] != 0:
         a_list[0] += int((b[0]-a[0])/abs(b[0]-a[0]))
     if b[1]-a[1] != 0:
         a_list[1] += int((b[1]-a[1])/abs(b[1]-a[1]))
     a_list = tuple(a_list)
     return a_list
+
 
 #клик мыши был на игровом поле
 def click_bf(x, y):
@@ -599,34 +601,75 @@ def person_position():
 #действия
 #region
 
-#check_target(mouse_pos, queue_person[turn_person].pos, queue_person[person].pos, select_item.range_max, select_item.range_min): #это проверка возможности атаковать цель
 
 #атака
+#region
+def target_check():
+    global TILE2
+    mouse_pos = get_mouse_pos()
+
+    check_passed = '-'
+
+    target_open = '+' #цель не закрыта преградой
+    target_range = '+' #цель в пределах досягаемости
+
+    color = BLUE #для указания доступных инедоступных для атаки целей
+
+    #проверка преград
+    #как работает: Выстраивается линия из точек от стрелка к цели. точки смещяются по центру клетки в которой расположены
+    #далее проверка проходимости клетки и соответствие мин и макс дальности.
+    range_line = []
+    range_line.append(queue_person[turn_person].pos)
+
+    for i in range(100):#создаем список клеток через которые проходит атака
+        x = queue_person[turn_person].pos[0] + round((mouse_pos[0] - queue_person[turn_person].pos[0]) / 100 * i)
+        y = queue_person[turn_person].pos[1] + round((mouse_pos[1] - queue_person[turn_person].pos[1]) / 100 * i)
+        check = (x, y)
+        if check in range_line:
+            continue
+        else:
+            range_line.append(check)
+
+    for i in range_line:#проверяется наличие непроходимых клеток и соответствие мин и макс дальности.
+        try:# gip - это формула гипотенузы. Нужна для оценки дальнсти по диагонали
+            gip = math.ceil((abs(queue_person[turn_person].pos[0] - i[0]) ** 2 + abs(queue_person[turn_person].pos[1] - i[1]) ** 2) ** 0.5)
+            if gip < select_item.range_min or gip > select_item.range_max:
+                pg.draw.circle(sc, pg.Color(RED), *get_circle(i[0], i[1], 10))
+                target_range = '-'
+            else:
+                pg.draw.circle(sc, pg.Color(color), *get_circle(i[0], i[1], 10))
+                target_range = '+'
+        except:
+            continue
+        try:
+            if field[i[1]][i[0]].closed == '+':
+                target_open = '-'
+                color = RED
+        except:
+            continue
+    #в будущем можно добавить проверку на преграды
+
+    if target_range == '+' and target_open == "+":
+        check_passed = '+'
+    return check_passed
+
+
 def attack():
     global status
-    mouse_pos = get_click_mouse_pos()
+    mouse_pos = get_mouse_pos()
+    print(queue_person[turn_person].act_point)
+    print(select_item.act_cost)
 
-    check = queue_person[turn_person].pos
-    max = select_item.range_max
-    min = select_item.range_min
-    range_wp = 0
-
-    person = 0
-    for i in queue_person:
-        if queue_person[person].pos == mouse_pos: #это проверка что клик был по противнику
-            if queue_person[turn_person].act_point - select_item.act_cost >= 0:  #это проверка что хватает очков действий
-                for i in range(max):
-                    range_wp += 1
-                    check = neighbour_tile(check, queue_person[person].pos) #добавить еще условие - если клетка - непроходимая, то цикл прерывается
-                    if check == mouse_pos:
-                        if range_wp <= max and range_wp >= min: #это проверка что в рамках дистанции атаки
-                            queue_person[person].hp -= select_item.dmg * 10
-                            queue_person[turn_person].act_point -= select_item.act_cost
-                            check = queue_person[turn_person].pos
-                        break
-        else:
-            person += 1
+    if queue_person[turn_person].act_point - select_item.act_cost < 0:  #это проверка что хватает очков действий
+        print('недостаточно очков действий')
+    else:
+        if target_check() == '+': #провека что цель можно атаковать (см.функцию)
+            for i in queue_person:
+                if i.pos == mouse_pos:  #поиск параметров персонажа который атакован
+                    i.hp -= select_item.dmg * 10
+                    queue_person[turn_person].act_point -= select_item.act_cost
     return status
+# endregion
 
 #меняет позицию
 def change_pos(end):
@@ -738,6 +781,15 @@ player.items.append(bow) #добавление предмета в инвент�
 # endregion
 
 
+#обновления экрана
+#region
+def checks():
+    global status
+    if status == 'move':
+        path() # отрисовка пути.
+    elif status == 'action':
+        target_check()
+
 
 #элементы обновляемые по требованию
 def upgrade_trigger():
@@ -754,8 +806,8 @@ def upgrade():
     indicator_name_pers()
     ind_status()
     description()
-
-
+    checks()
+# endregion
 
 #основной цикл
 while True:
@@ -766,7 +818,7 @@ while True:
 
         if queue_person[turn_person].rule == 'pl':
             if status == 'move':
-                path()  # отрисовка пути. Могут быть ситуации, когда это не нужно и придется функцию перенести
+                #path()  # отрисовка пути. Могут быть ситуации, когда это не нужно и придется функцию перенести
                 if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                     # эта функция проверяет что клик мыши был на карте
                     # в случае успеха, перемещает объект по карте
