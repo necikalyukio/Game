@@ -6,7 +6,8 @@ import math
 
 
 #закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
-
+#развернуть все: ctrl - shift - +
+u = 1
 
 #переменные
 #region
@@ -26,12 +27,8 @@ brown = (128, 64, 48)
 cols, rows = 30, 20 #количество клеток по горизонтали и вертикали
 TILE = 50 #размер клетки
 
-#временные переменные
-act_point = 20 #нужна для теста переменещения. Потом заменить на скорость персонажей
-start = (0, 7) #стартовая позиция. Потом заменить на позицию при размещении персонажей
-
 #временная задержка. Чем больше, тем медленнее. Сейчас 0, когда действий станет больше, добавить задержку
-FPS = 60
+FPS = 120
 
 #размер экрана
 screen_X = 1800
@@ -188,7 +185,7 @@ def create_way(start, goal, path_segment, diff_disc):
 
 #находит новую позицию, с учетом запаса действий
 def cp(end):
-    global grid, queue_person, turn_person, player, field
+    global grid, queue_person, turn_person, knight, field
     goal = end
     path_head = goal
     path_segment = goal
@@ -245,10 +242,19 @@ class tile():
         self.closed = closed
         self.diff = diff
         self.image = image
-none = tile("none", "none", "none", '-', 2, 'Grass1.png')
-tree = tile("none", "none", "tree", '+', '-', 'Tree1.png')
-stone = tile("none", "none", "stone", '-', 3, 'rock1.png')
-road = tile("none", "none", "road", '-', 1, 'road1.jpg')
+none = tile("none", "none", "none", '-', 2, 'файлы для игры/элементы поля/Grass1.png')
+tree1 = tile("none", "none", "tree", '+', '-', 'файлы для игры/элементы поля/Tree1.png')
+tree2 = tile("none", "none", "tree", '+', '-', 'файлы для игры/элементы поля/Tree2.png')
+tree3 = tile("none", "none", "tree", '+', '-', 'файлы для игры/элементы поля/Tree3.png')
+tree4 = tile("none", "none", "tree", '+', '-', 'файлы для игры/элементы поля/Tree4.png')
+tree5 = tile("none", "none", "tree", '+', '-', 'файлы для игры/элементы поля/Tree5.png')
+stone1 = tile("none", "none", "stone", '-', 4, 'файлы для игры/элементы поля/rock1.png')
+stone2 = tile("none", "none", "stone", '-', 4, 'файлы для игры/элементы поля/rock2.png')
+stone3 = tile("none", "none", "stone", '-', 4, 'файлы для игры/элементы поля/rock3.png')
+stone4 = tile("none", "none", "stone", '-', 4, 'файлы для игры/элементы поля/rock4.png')
+stone5 = tile("none", "none", "stone", '-', 4, 'файлы для игры/элементы поля/rock5.png')
+stone6 = tile("none", "none", "stone", '-', 4, 'файлы для игры/элементы поля/rock6.png')
+road = tile("none", "none", "road", '-', 1, 'файлы для игры/элементы поля/road1.jpg')
 
 def create_tile(x, y, tile):
     grid[y][x] = tile.diff
@@ -256,9 +262,8 @@ def create_tile(x, y, tile):
     field_images[y][x] = tile.image
 
 
-#______________________________________________________________________________________________________________________
 #создание поля
-rnd_type = [none, tree, stone]
+rnd_type = [none, tree1, tree2, tree3, tree4, tree5, stone1, stone2, stone3, stone4, stone5, stone6]
 
 #сначала создаем "пустое" поле
 def create_battlefield(cols, rows):
@@ -273,28 +278,26 @@ def create_battlefield(cols, rows):
 
 #потом заполняем его клетками. Заменяем пустые клетки
 def fill_battlefield(cols, rows):
-    global tile, rnd_type, stone
+    global tile, rnd_type
     for i in range(cols):
         for j in range(rows):
-            f = random.choices(rnd_type, weights=[5, 1, 1])
+            f = random.choices(rnd_type, weights=[20, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
             rand_func = random.choice(f)
             create_tile(i, j, rand_func)
 
 #создание дороги. Доработать
 def crete_road():
-    end_road = random.randint(1, cols)
-    start = (random.randint(1, cols), 0)
-    end = (end_road, rows-1)
+    end_road = random.randint(1, cols-2)
+    start = (random.randint(1, cols-2), 0)
+    road_segment = (end_road, rows-1)
     path_segment = (end_road, rows-1)
-    way = create_way(start, end, path_segment, 0.1)
+    way = create_way(start, road_segment, path_segment, 0.1)
     for i in reversed(way):
         create_tile(i[0], i[1], road)
         create_tile(i[0]+1, i[1], road)
 
 
-create_battlefield(cols, rows)
-fill_battlefield(cols, rows)
-crete_road()
+
 
 
 #отрисовка поля согласно созданной карте create_battlefield()
@@ -309,6 +312,7 @@ def explore():
         for r in range(rows):
             if field[r][t] != none:
                 bg = pg.image.load(field_images[r][t]).convert()
+                bg.set_colorkey((255, 255, 255))#это удаляет белый фон
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X + TILE * (t), mainfield_Y + TILE * (r)))
 
@@ -332,7 +336,7 @@ def explore():
 #в данном случае меняет стартовую клетку на пустую.
 def change_tile(x, y, tile):
     create_tile(x, y, tile)
-change_tile(start[0], start[1], none)
+
 
 
 # endregion
@@ -359,8 +363,6 @@ def button_blok():
     button_blok = pg.Rect(button_blok_x, button_blok_y, button_blok_x_end, button_blok_y_end)
     pg.draw.rect(sc, (GRAY), button_blok, 0)
 
-#отрисовка блок кнопок
-button_blok()
 
 class button():
     def __init__ (self, name, pos_X, pos_Y, size_X, size_Y, act_color, inact_color, command, item):
@@ -415,8 +417,11 @@ def push_button(x, y):
 #кнопки (название, картинка если кнопка активна, картинка если не активна, команда, номер в списке к которому обращаетя команда)
 def create_buttom():
     global status, queue_person, turn_person
-    button_create('end turn', 'next_turn.jpg', 'next_turn.jpg', change_turn, 1)
-    button_create('exit', 'exit.jpg', 'exit.jpg', exit_game, 1)
+    buttons.clear()
+    buttons.append(base_button)
+
+    button_create('end turn', 'файлы для игры/Иконки/next_turn.jpg', 'файлы для игры/Иконки/next_turn.jpg', change_turn, 1)
+    button_create('exit', 'файлы для игры/Иконки/exit.jpg', 'файлы для игры/Иконки/exit.jpg', exit_game, 1)
     for i in queue_person[turn_person].items: #создаются кнопки исходя из списка предметов активного персонажа
         button_create(i.name, i.image_act, i.image_inact, i.command, i)
     return status
@@ -436,23 +441,20 @@ indicator_blok_y_end = rows*TILE
 indicator_blok = ('indicator_blok', indicator_blok_x, indicator_blok_y, indicator_blok_x+indicator_blok_x_end, indicator_blok_y+indicator_blok_y_end)
 parts_screen.append(indicator_blok)
 
-#отрисовка блок кнопок
+
 def indicator_blok():
     indicator_blok = pg.Rect(indicator_blok_x, indicator_blok_y, indicator_blok_x_end, indicator_blok_y_end)
     pg.draw.rect(sc, (brown), indicator_blok, 0)
-indicator_blok()
-
 def indicator_speed():
-    global player, queue_person, turn_person
+    global knight, queue_person, turn_person
     indicator_speed = pg.Rect(indicator_blok_x+10, indicator_blok_y, indicator_blok_x_end - 20, 50)
     pg.draw.rect(sc, (YELLOW), indicator_speed, 0)
 
     f1 = pg.font.Font(None, 48)
     text1 = f1.render(str(queue_person[turn_person].act_point), 1, (180, 0, 0))
     sc.blit(text1, (indicator_blok_x+10, indicator_blok_y))
-
 def indicator_name_pers():
-    global player, queue_person, turn_person
+    global knight, queue_person, turn_person
     indicator_speed = pg.Rect(indicator_blok_x+10, indicator_blok_y+100, indicator_blok_x_end - 20, 50)
     pg.draw.rect(sc, (YELLOW), indicator_speed, 0)
 
@@ -494,14 +496,11 @@ def description():
 #region
 
 class person:
-    def __init__(self, name, rule, maxhp, hp, dmg, arm, pen, act_point_max, act_point, power_max, power, pos, items, skills, image):
+    def __init__(self, name, rule, maxhp, hp, act_point_max, act_point, power_max, power, pos, items, skills, image):
         self.name = name
         self.rule = rule
         self.maxhp = maxhp
         self.hp = hp
-        self.dmg = dmg
-        self.arm = arm
-        self.pen = pen
         self.act_point_max = act_point_max
         self.act_point = act_point
         self.power_max = power_max
@@ -514,73 +513,94 @@ class person:
 
 
 # игрок
-player_rule = 'pl'
-player_hp = random.randint(170, 200)
-player_dmg = random.randint(7, 10)
-player_arm = random.randint(0, 3)
-player_pen = random.randint(0, 3)
-player_act_point_max = 20
-player_act_point = 20
-player_power_max = 200
-player_power = 200
-player_pos = (0, 7)
-player_items = []
-player_skills = []
-player_image = 'knight1.jpg'
+knight_rule = 'pl'
+knight_hp = random.randint(170, 200)
+knight_act_point_max = 20
+knight_act_point = 20
+knight_power_max = 200
+knight_power = 200
+knight_pos = (0, 0)
+knight_items = []
+knight_skills = []
+knight_image = 'файлы для игры/персонажи/knight1.jpg'
 
-player = person("knight", player_rule, player_hp, player_hp, player_dmg, player_arm, player_pen, player_act_point_max, player_act_point, player_power_max, player_power, player_pos, player_items, player_skills, player_image)
-queue_person.append(player) #добавление персонажа в список действующих персонажей
-change_tile(player_pos[0], player_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
+def add_knight():
+    knight = person("knight", knight_rule, knight_hp, knight_hp, knight_act_point_max, knight_act_point,knight_power_max, knight_power, knight_pos, knight_items, knight_skills, knight_image)
+    queue_person.append(knight)
+
+    add_items = [no_arm, might, bow]
+    for i in add_items:
+        if i in knight.items:
+            continue
+        else:
+            knight.items.append(i)
+
+
+sorc_rule = 'pl'
+sorc_hp = random.randint(170, 200)
+sorc_act_point_max = 20
+sorc_act_point = 20
+sorc_power_max = 200
+sorc_power = 200
+sorc_pos = (0, 0)
+sorc_items = []
+sorc_skills = []
+sorc_image = 'файлы для игры/персонажи/sorc1.jpg'
+
+def add_sorc():
+    sorc = person("sorc", sorc_rule, sorc_hp, sorc_hp, sorc_act_point_max, sorc_act_point,sorc_power_max, sorc_power, sorc_pos, sorc_items, sorc_skills, sorc_image)
+    queue_person.append(sorc)
+
+    add_items = [no_arm, fire_Bolt]
+    for i in add_items:
+        if i in sorc.items:
+            continue
+        else:
+            sorc.items.append(i)
 
 
 #противник
-enemy_rule = 'AI'
-enemy_hp = random.randint(170, 200)
-enemy_dmg = random.randint(7, 10)
-enemy_arm = random.randint(0, 3)
-enemy_pen = random.randint(0, 3)
-enemy_act_point_max = 10
-enemy_act_point = 10
-enemy_power_max = 200
-enemy_power = 200
-enemy_pos = (10, 7)
-enemy_items = []
-enemy_skills = []
-enemy_image = 'gazebo.jpg'
+demon_rule = 'AI'
+demon_hp = random.randint(170, 200)
+demon_act_point_max = 10
+demon_act_point = 10
+demon_power_max = 200
+demon_power = 200
+demon_pos = (0, 0)
+demon_items = []
+demon_skills = []
+demon_image = 'файлы для игры/персонажи/demon.jpg'
 
-enemy = person("gazebo", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_power_max, enemy_power, enemy_pos, enemy_items, enemy_skills, enemy_image)
-queue_person.append(enemy) #добавление персонажа в список действующих персонажей
-change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
+def add_demon():
+    demon = person("demon", 'AI', demon_hp, demon_hp, demon_act_point_max, demon_act_point, demon_power_max, demon_power, demon_pos, demon_items, demon_skills, demon_image)
+    queue_person.append(demon)
 
-
-#противник
-enemy_rule = 'AI'
-enemy_hp = random.randint(170, 200)
-enemy_dmg = random.randint(7, 10)
-enemy_arm = random.randint(0, 3)
-enemy_pen = random.randint(0, 3)
-enemy_act_point_max = 10
-enemy_act_point = 10
-enemy_power_max = 200
-enemy_power = 200
-enemy_pos = (10, 17)
-enemy_items = []
-enemy_skills = []
-enemy_image = 'gazebo.jpg'
-
-enemy = person("gazebo2", enemy_rule, enemy_hp, enemy_hp, enemy_dmg, enemy_arm, enemy_pen, enemy_act_point_max, enemy_act_point, enemy_power_max, enemy_power, enemy_pos, enemy_items, enemy_skills, enemy_image)
-queue_person.append(enemy) #добавление персонажа в список действующих персонажей
-change_tile(enemy_pos[0], enemy_pos[1], none) #замена клетки персонажа на пусту. Чтобы не стоял на дереве
+    add_items = [might]
+    for i in add_items:
+        if i in demon.items:
+            continue
+        else:
+            demon.items.append(i)
 
 
 
-#размещение персонажей на экране. Прикажждом обновлении экрана
+#позже, сделать функцию которая будет создавать персонажей и добавлять им оружие и навыки.
+
+
+
+
+
+
+
+
+#размещение персонажей на экране. Прикаждом обновлении экрана
 def person_position():
     global TILE, queue_person, grid
     person = 0
     for i in queue_person:
         if queue_person[person].hp > 0:
             bg = pg.image.load(queue_person[person].image).convert()
+            bg.set_colorkey((255, 255, 255))  # это удаляет белый фон
             bg = pg.transform.scale(bg, (TILE, TILE))
             sc.blit(bg, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
 
@@ -606,7 +626,7 @@ def target_check():
     target_open = '+' #цель не закрыта преградой
     target_range = '+' #цель в пределах досягаемости
 
-    color = BLUE #для указания доступных инедоступных для атаки целей
+    color = BLUE #для указания доступных и недоступных для атаки целей
 
     #проверка преград
     #как работает: Выстраивается линия из точек от стрелка к цели. точки смещяются по центру клетки в которой расположены
@@ -624,9 +644,13 @@ def target_check():
             range_line.append(check)
 
     for i in range_line:#проверяется наличие непроходимых клеток и соответствие мин и макс дальности.
-        try:# gip - это формула гипотенузы. Нужна для оценки дальнсти по диагонали
+        try:# gip - это формула гипотенузы. Нужна для оценки дальности по диагонали
             gip = math.ceil((abs(queue_person[turn_person].pos[0] - i[0]) ** 2 + abs(queue_person[turn_person].pos[1] - i[1]) ** 2) ** 0.5)
-            if gip < select_item.range_min or gip > select_item.range_max:
+            if select_item.range_max == 1 and (abs(queue_person[turn_person].pos[0] - i[0]) == 1 or abs(queue_person[turn_person].pos[1] - i[1]) == 1):
+                pg.draw.circle(sc, pg.Color(color), *get_circle(i[0], i[1], 10))
+                target_range = '+'
+                #это костыль. Если оружие ближнего боя и цель соседняя, то проверка пройдена
+            elif gip < select_item.range_min or gip > select_item.range_max:
                 pg.draw.circle(sc, pg.Color(RED), *get_circle(i[0], i[1], 10))
                 target_range = '-'
             else:
@@ -681,11 +705,14 @@ def change_turn():
     else:
         turn_person += 1
     queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
+    create_buttom()
     return turn_person
+
+
 
 # endregion
 
-#предметы
+#Оружие (предметы и атакующие навыки)
 #region
 class weapon:
     def __init__(self, name, range_min, range_max, dmg, pen, act_cost, power_cost, image_act, image_inact, command, command_name):
@@ -725,14 +752,13 @@ no_arm_dmg = random.randint(1, 3)
 no_arm_pen = random.randint(0, 1)
 no_arm_act_cost = 2
 no_arm_power_cost = 0
-no_arm_image_act = 'пустой.jpg'
-no_arm_image_inact = 'пустой.jpg'
+no_arm_image_act = 'файлы для игры/Иконки/un_arm.png'
+no_arm_image_inact = 'файлы для игры/Иконки/un_arm.png'
 no_arm_command = prepear_attack
 no_arm_command_name = 'безоружная атака'
-# endregion
 
 no_arm = weapon(no_arm_name, no_arm_range_min, no_arm_range_max, no_arm_dmg, no_arm_pen, no_arm_act_cost, no_arm_power_cost, no_arm_image_act, no_arm_image_inact, no_arm_command, no_arm_command_name)
-player.items.append(no_arm) #добавление предмета в инвентарь персонажа
+# endregion
 
 #меч
 #region
@@ -743,15 +769,13 @@ might_dmg = random.randint(7, 10)
 might_pen = random.randint(0, 3)
 might_act_cost = 10
 might_power_cost = 0
-might_image_act = 'attack_might.jpg'
-might_image_inact = 'attack_might.jpg'
+might_image_act = 'файлы для игры/Иконки/attack_might.jpg'
+might_image_inact = 'файлы для игры/Иконки/attack_might.jpg'
 might_command = prepear_attack
 might_command_name = 'удар мечом'
-# endregion
 
 might = weapon(might_name, might_range_min, might_range_max, might_dmg, might_pen, might_act_cost, might_power_cost, might_image_act, might_image_inact, might_command, might_command_name)
-player.items.append(might) #добавление предмета в инвентарь персонажа
-
+# endregion
 
 #лук
 #region
@@ -762,18 +786,69 @@ bow_dmg = random.randint(7, 10)
 bow_pen = random.randint(0, 3)
 bow_act_cost = 10
 bow_power_cost = 0
-bow_image_act = 'shot_bow.jpg'
-bow_image_inact = 'shot_bow.jpg'
+bow_image_act = 'файлы для игры/Иконки/shot_bow.jpg'
+bow_image_inact = 'файлы для игры/Иконки/shot_bow.jpg'
 bow_command = prepear_attack
-bow_command_name = 'удар мечом'
-# endregion
+bow_command_name = 'выстрел из лука'
 
 bow = weapon(bow_name, bow_range_min, bow_range_max, bow_dmg, bow_pen, bow_act_cost, bow_power_cost, bow_image_act, bow_image_inact, bow_command, bow_command_name)
-player.items.append(bow) #добавление предмета в инвентарь персонажа
+# endregion
+
+#огненный шар
+#region
+fire_Bolt_name = 'fire_Bolt'
+fire_Bolt_range_min = 3
+fire_Bolt_range_max = 20
+fire_Bolt_dmg = random.randint(3, 6)
+fire_Bolt_pen = random.randint(0, 3)
+fire_Bolt_act_cost = 5
+fire_Bolt_power_cost = 0
+fire_Bolt_image_act = 'файлы для игры/Иконки/Fire_Bolt.jpg'
+fire_Bolt_image_inact = 'файлы для игры/Иконки/Fire_Bolt.jpg'
+fire_Bolt_command = prepear_attack
+fire_Bolt_command_name = 'огненный шар'
+
+fire_Bolt = weapon(fire_Bolt_name, fire_Bolt_range_min, fire_Bolt_range_max, fire_Bolt_dmg, fire_Bolt_pen, fire_Bolt_act_cost, fire_Bolt_power_cost, fire_Bolt_image_act, fire_Bolt_image_inact, fire_Bolt_command, fire_Bolt_command_name)
+# endregion
 
 
 # endregion
 
+
+#создание игры
+#region
+def start_battle():
+    global queue_person, cols, rows, person
+
+    knights = 1
+    for i in range(knights):
+        add_knight()
+
+    sorcs = 1
+    for i in range(sorcs):
+        add_sorc()
+
+
+    demons = 2
+    for i in range(demons):
+        add_demon()
+
+    create_battlefield(cols, rows)#создание карты
+    fill_battlefield(cols, rows)#наполнение карты
+    for i in queue_person:#добавление персонажей на карту
+        while True:
+            x = (random.randint(1, cols-1))
+            y = (random.randint(1, rows-1))
+            if field[y][x].closed == '-':
+                i.pos = list(i.pos)  # необходимо поменять тип
+                i.pos[0] = x
+                i.pos[1] = y
+                i.pos = tuple(i.pos)  # а потом вернуть тип обратно
+                break
+    crete_road()  # создание дороги
+    return queue_person
+start_battle()
+# endregion
 
 #обновления экрана
 #region
@@ -785,23 +860,26 @@ def checks():
         target_check()
 
 
-#элементы обновляемые по требованию
-def upgrade_trigger():
-    create_buttom()
-upgrade_trigger()
-
 #постоянно обновляемые элемены
 def upgrade():
+    indicator_blok() #само поле с описанием
+    button_blok() #само поле с кнопками
+    create_buttom() #кнопки
 
-    explore()
-    person_position()
+    explore() #поле боя
+    person_position() #позиции персонажей
 
-    indicator_speed()  # это индикатор скорости. переместить в функцию которая обновляет индикаторы
+    #различные индикаторы. Позже объеденить в одну функцию и расширить
+    indicator_speed()
     indicator_name_pers()
     ind_status()
     description()
-    checks()
+    
+    checks() #проверка статуса "moveе" или "action"
 # endregion
+
+
+
 
 #основной цикл
 while True:
