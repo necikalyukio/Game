@@ -4,10 +4,17 @@ import random
 import sys
 import math
 
+#планы и комментарии
+#region
+#переделать отрисовку объектов на карте. Уеличить размер и сместить, чтобы они выглядели объемными.
+    #проблема - "задние" объеты будут поверх "передних", если они отрисованы позже (напр.персонаж за деревом)
+        #создание единого списка не поможет, т.к. какие-то объекты прозрачные и нужно видеть что за ними (напр. персонаж на клетке с камнем)
+        #возможно отрисовка по "линиям". То есть 1й ряд клеток, потом 1й ряд объектов, потом 1й ряд персонаей. потом й и т.д. Но это долго и сложно
+        #нужно другоерешение
 
 #закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
 #развернуть все: ctrl - shift - +
-u = 1
+# endregion
 
 #переменные
 #region
@@ -227,7 +234,7 @@ def path():
             continue
 
     newpos, act_point = cp(mouse_pos)
-    pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 4))
+    pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 2), 2)
 
 # endregion
 
@@ -316,17 +323,12 @@ def explore():
                 bg = pg.transform.scale(bg, (TILE, TILE))
                 sc.blit(bg, (mainfield_X + TILE * (t), mainfield_Y + TILE * (r)))
 
-                #указание сложности клеток
-                f1 = pg.font.Font(None, 24)
-                text1 = f1.render(str(grid[r][t]), 1, (180, 0, 0))
-                sc.blit(text1, (t * TILE, r * TILE))
-
     for i in range(0, int(rows)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
     for j in range(0, int(cols)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
 
-    #это каждый раз возаращает стоимость клеток к стандарту.
+    #это каждый раз возвращает стоимость клеток к стандарту.
     for t in range(cols):
         for r in range(rows):
             grid[r][t] = field[r][t].diff
@@ -510,9 +512,8 @@ class person:
         self.skills = skills
         self.image = image
 
-
-
-# игрок
+#knight
+#region
 knight_rule = 'pl'
 knight_hp = random.randint(170, 200)
 knight_act_point_max = 20
@@ -534,8 +535,10 @@ def add_knight():
             continue
         else:
             knight.items.append(i)
+# endregion
 
-
+#sorc
+#region
 sorc_rule = 'pl'
 sorc_hp = random.randint(170, 200)
 sorc_act_point_max = 20
@@ -557,9 +560,10 @@ def add_sorc():
             continue
         else:
             sorc.items.append(i)
-
+# endregion
 
 #противник
+#region
 demon_rule = 'AI'
 demon_hp = random.randint(170, 200)
 demon_act_point_max = 10
@@ -581,31 +585,21 @@ def add_demon():
             continue
         else:
             demon.items.append(i)
-
-
-
-#позже, сделать функцию которая будет создавать персонажей и добавлять им оружие и навыки.
-
-
-
-
-
-
-
+# endregion
 
 #размещение персонажей на экране. Прикаждом обновлении экрана
 def person_position():
     global TILE, queue_person, grid
-    person = 0
     for i in queue_person:
-        if queue_person[person].hp > 0:
-            bg = pg.image.load(queue_person[person].image).convert()
+        if i.hp > 0:
+            bg = pg.image.load(i.image).convert()
             bg.set_colorkey((255, 255, 255))  # это удаляет белый фон
             bg = pg.transform.scale(bg, (TILE, TILE))
-            sc.blit(bg, (queue_person[person].pos[0] * TILE, queue_person[person].pos[1] * TILE))
+            sc.blit(bg, (i.pos[0] * TILE, i.pos[1] * TILE))
 
-            grid[queue_person[person].pos[1]][queue_person[person].pos[0]] = 999
-            person += 1
+            grid[i.pos[1]][i.pos[0]] = 999
+
+            pg.draw.circle(sc, pg.Color(RED), *get_circle(*i.pos, 2), 2)
 
 
 # endregion
@@ -874,7 +868,7 @@ def upgrade():
     indicator_name_pers()
     ind_status()
     description()
-    
+
     checks() #проверка статуса "moveе" или "action"
 # endregion
 
