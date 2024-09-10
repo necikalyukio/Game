@@ -1,4 +1,9 @@
+import pygame as pg
+from heapq import *
+import random
+import sys
 import math
+import time
 
 #планы и комментарии
 #region
@@ -11,6 +16,8 @@ import math
 #экземляр класса TILE вернуть в вид как экземпляр person
     #причина - нарушается принцип наследования. Нужно отдельно прописывать переменную. а потом передавать ее как атрибут
     #если он сразу прописан как атрибут, то при изменении, он меняется во всех экземплярах.
+
+#кол-во кадров - 60. Время должны быть 0.166. Но оно ниже. Понять почему.
 
 #закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
 #развернуть все: ctrl - shift - +
@@ -35,7 +42,8 @@ cols, rows = 30, 20 #количество клеток по горизонтал
 TILE = 50 #размер клетки
 
 #кол-во циклов в секунду
-FPS = 60
+FPS = 30
+clock = pg.time.Clock()
 
 #размер экрана
 screen_X = 1800
@@ -49,11 +57,8 @@ mainfield_Y = 0
 grid = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 #матрица клеток. Каждое число - шкала X.
 field = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
-#матрица картинок. Каждое число - шкала X.
-field_images = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
-#поля экрана
+#поля экрана (поле кнопок, поле игры, поле персонажа и т.д.)
 parts_screen = []
-
 
 
 
@@ -73,7 +78,7 @@ status = 'move'
 
 #окно программы
 sc = pg.display.set_mode((screen_X, screen_Y))
-clock = pg.time.Clock()
+
 
 # endregion
 
@@ -269,7 +274,6 @@ road = tile("road", '-', 1, TILE, 0, 0, 'файлы для игры/элемен
 def create_tile(x, y, tile):
     grid[y][x] = tile.diff
     field[y][x] = tile
-    field_images[y][x] = tile.image
 
 
 #создание поля
@@ -282,7 +286,6 @@ def create_battlefield(cols, rows):
         for j in range(rows):
             grid[j].append(0)
             field[j].append(0)
-            field_images[j].append(0)
     BF_blok = ('battlefield', 0, 0, cols*TILE, rows*TILE)
     parts_screen.append(BF_blok)
 
@@ -291,7 +294,7 @@ def fill_battlefield(cols, rows):
     global tile, rnd_type
     for i in range(cols):
         for j in range(rows):
-            f = random.choices(rnd_type, weights=[20, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+            f = random.choices(rnd_type, weights=[30, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
             rand_func = random.choice(f)
             create_tile(i, j, rand_func)
 
@@ -314,21 +317,31 @@ def crete_road():
 #отрисовка поля согласно созданной карте create_battlefield()
 def explore():
     global TILE, cols, rows, mainfield_X, mainfield_Y, queue_person
+
+
+
     mainfield_X_end = mainfield_X + cols * TILE
     mainfield_Y_end = mainfield_Y + rows * TILE
     main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
     pg.draw.rect(sc, (GREEN), main, 0)
+
+
+    for i in range(0, int(rows)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
+    for j in range(0, int(cols)+1):
+        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
+
 
     #это каждый раз возвращает стоимость клеток к стандарту.
     for t in range(cols):
         for r in range(rows):
             grid[r][t] = field[r][t].diff
 
-
+    #размещение объектов
     for t in range(cols):
         for r in range(rows):
             if field[r][t] != none:
-                bg = pg.image.load(field_images[r][t]).convert()
+                bg = pg.image.load(field[r][t].image).convert() #достает картинку
                 bg.set_colorkey((255, 255, 255)) #это удаляет белый фон
                 bg = pg.transform.scale(bg, (field[r][t].size, field[r][t].size)) #размер объектов. Из атрибута экземпляра класса
                 sc.blit(bg, (mainfield_X + TILE * (t) - field[r][t].pos_offset_x, mainfield_Y + TILE * (r) - field[r][t].pos_offset_y)) #размещение объекта. с смещением для объема
@@ -345,22 +358,10 @@ def explore():
                         grid[i.pos[1]][i.pos[0]] = 999
 
 
-
-    for i in range(0, int(rows)+1):
-        pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
-    for j in range(0, int(cols)+1):
-        pg.draw.line(sc, (0, 0, 0), (mainfield_X + j * TILE, mainfield_Y), (mainfield_X + j * TILE, mainfield_Y_end))
-
-
-
-
-
-
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
 #в данном случае меняет стартовую клетку на пустую.
 def change_tile(x, y, tile):
     create_tile(x, y, tile)
-
 
 
 # endregion
@@ -878,11 +879,12 @@ def checks():
 
 #постоянно обновляемые элемены
 def upgrade():
+
     indicator_blok() #само поле с описанием
     button_blok() #само поле с кнопками
     create_buttom() #кнопки
-
     explore() #поле боя
+
     #person_position() #позиции персонажей
 
     #различные индикаторы. Позже объеденить в одну функцию и расширить
@@ -891,15 +893,13 @@ def upgrade():
     ind_status()
     description()
 
-    checks() #проверка статуса "moveе" или "action"
+    checks() #проверка статуса "move" или "action"
 # endregion
 
 
 n = 0
 #основной цикл
 while True:
-    n += 1
-    print(n)
     upgrade()
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -924,6 +924,9 @@ while True:
         elif queue_person[turn_person].rule == 'AI':
             change_pos(queue_person[0].pos)
             change_turn()
+
+    print("fps")
+    print(clock.get_fps())
 
     pg.display.flip()
     clock.tick(FPS)
