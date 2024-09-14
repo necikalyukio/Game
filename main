@@ -1,7 +1,13 @@
+import pygame as pg
+from heapq import *
+import random
+import sys
+import math
 import time
 
 #планы и комментарии
 #region
+
 #переделать отрисовку объектов на карте.
     #сделать "слои" объектов. как атрибут класса
         #слой 0 - уровень земли. Дорога, плитка, тела, объекты на земле
@@ -30,6 +36,19 @@ PINK = (230, 50, 230)
 ForestGreen = (34, 139, 34)
 RED = (255, 0, 0)
 brown = (128, 64, 48)
+
+
+
+#кубы
+d4 = [1, 4]
+d6 = [1, 6]
+d8 = [1, 8]
+d10 = [1, 10]
+d12 = [1, 12]
+d20 = [1, 20]
+
+
+
 
 
 cols, rows = 30, 20 #количество клеток по горизонтали и вертикали
@@ -544,19 +563,10 @@ class person:
 
 #knight
 #region
-knight_rule = 'pl'
-knight_hp = random.randint(170, 200)
-knight_act_point_max = 20
-knight_act_point = 20
-knight_power_max = 200
-knight_power = 200
-knight_pos = (0, 0)
-knight_items = []
-knight_skills = []
-knight_image = pg.image.load('файлы для игры/персонажи/knight1.jpg')
 
+knight_image = pg.image.load('файлы для игры/персонажи/knight1.jpg')
 def add_knight():
-    knight = person("knight", knight_rule, knight_hp, knight_hp, knight_act_point_max, knight_act_point,knight_power_max, knight_power, knight_pos, knight_items, knight_skills, knight_image)
+    knight = person("knight", 'pl', 200, 200, 20, 20, 200, 200, (0, 0), [], [], knight_image)
     queue_person.append(knight)
 
     add_items = [no_arm, might, bow]
@@ -569,19 +579,9 @@ def add_knight():
 
 #sorc
 #region
-sorc_rule = 'pl'
-sorc_hp = random.randint(170, 200)
-sorc_act_point_max = 20
-sorc_act_point = 20
-sorc_power_max = 200
-sorc_power = 200
-sorc_pos = (0, 0)
-sorc_items = []
-sorc_skills = []
 sorc_image = pg.image.load('файлы для игры/персонажи/sorc1.jpg')
-
 def add_sorc():
-    sorc = person("sorc", sorc_rule, sorc_hp, sorc_hp, sorc_act_point_max, sorc_act_point,sorc_power_max, sorc_power, sorc_pos, sorc_items, sorc_skills, sorc_image)
+    sorc = person("sorc", 'pl', 200, 200, 20, 20, 200, 200, (0, 0), [], [], sorc_image)
     queue_person.append(sorc)
 
     add_items = [no_arm, fire_Bolt]
@@ -594,19 +594,9 @@ def add_sorc():
 
 #противник
 #region
-demon_rule = 'AI'
-demon_hp = random.randint(170, 200)
-demon_act_point_max = 10
-demon_act_point = 10
-demon_power_max = 200
-demon_power = 200
-demon_pos = (0, 0)
-demon_items = []
-demon_skills = []
 demon_image = pg.image.load('файлы для игры/персонажи/demon.jpg')
-
 def add_demon():
-    demon = person("demon", 'AI', demon_hp, demon_hp, demon_act_point_max, demon_act_point, demon_power_max, demon_power, demon_pos, demon_items, demon_skills, demon_image)
+    demon = person("demon", 'AI', 200, 200, 10, 10, 200, 200, (0, 0), [], [], demon_image)
     queue_person.append(demon)
 
     add_items = [might]
@@ -690,7 +680,8 @@ def attack():
         if target_check() == '+': #провека что цель можно атаковать (см.функцию)
             for i in queue_person:
                 if i.pos == mouse_pos:  #поиск параметров персонажа который атакован
-                    i.hp -= select_item.dmg * 10
+                    i.hp -= random.randint(select_item.dmg, select_item.max_dmg) * 10
+                    print(i.hp)
                     queue_person[turn_person].act_point -= select_item.act_cost
                     if i.hp <= 0:#удаление персонажа из списка персонажей, если он убит
                         queue_person.remove(i)
@@ -724,11 +715,12 @@ def change_turn():
 #Оружие (предметы и атакующие навыки)
 #region
 class weapon:
-    def __init__(self, name, range_min, range_max, dmg, pen, act_cost, power_cost, image_act, image_inact, command, command_name):
+    def __init__(self, name, range_min, range_max, dmg, max_dmg, pen, act_cost, power_cost, image_act, image_inact, command, command_name):
         self.name = name
         self.range_min = range_min
         self.range_max = range_max
         self.dmg = dmg
+        self.max_dmg = max_dmg
         self.pen = pen
         self.act_cost = act_cost
         self.power_cost = power_cost
@@ -736,6 +728,7 @@ class weapon:
         self.image_inact = image_inact
         self.command = command
         self.command_name = command_name
+
 
 #при нажатии кнопки атаки, меняется статус игры и выбирается оружие.
 def prepear_attack():
@@ -754,70 +747,30 @@ def prepear_attack():
 
 #безоружная атака
 #region
-no_arm_name = 'no_arm'
-no_arm_range_min = 0
-no_arm_range_max = 1
-no_arm_dmg = random.randint(1, 3)
-no_arm_pen = random.randint(0, 1)
-no_arm_act_cost = 2
-no_arm_power_cost = 0
 no_arm_image_act = pg.image.load('файлы для игры/Иконки/un_arm.png')
 no_arm_image_inact = pg.image.load('файлы для игры/Иконки/un_arm.png')
-no_arm_command = prepear_attack
-no_arm_command_name = 'безоружная атака'
-
-no_arm = weapon(no_arm_name, no_arm_range_min, no_arm_range_max, no_arm_dmg, no_arm_pen, no_arm_act_cost, no_arm_power_cost, no_arm_image_act, no_arm_image_inact, no_arm_command, no_arm_command_name)
+no_arm = weapon('no_arm', 0, 1, d4[0], d4[1], 0, 2, 0, no_arm_image_act, no_arm_image_inact, prepear_attack, 'безоружная атака')
 # endregion
 
 #меч
 #region
-might_name = 'might'
-might_range_min = 0
-might_range_max = 1
-might_dmg = random.randint(7, 10)
-might_pen = random.randint(0, 3)
-might_act_cost = 10
-might_power_cost = 0
 might_image_act = pg.image.load('файлы для игры/Иконки/attack_might.jpg')
 might_image_inact = pg.image.load('файлы для игры/Иконки/attack_might.jpg')
-might_command = prepear_attack
-might_command_name = 'удар мечом'
-
-might = weapon(might_name, might_range_min, might_range_max, might_dmg, might_pen, might_act_cost, might_power_cost, might_image_act, might_image_inact, might_command, might_command_name)
+might = weapon('might', 0, 1, d10[0], d10[1], 2, 10, 0, might_image_act, might_image_inact, prepear_attack, 'удар мечом')
 # endregion
 
 #лук
 #region
-bow_name = 'bow'
-bow_range_min = 3
-bow_range_max = 10
-bow_dmg = random.randint(7, 10)
-bow_pen = random.randint(0, 3)
-bow_act_cost = 10
-bow_power_cost = 0
 bow_image_act = pg.image.load('файлы для игры/Иконки/shot_bow.jpg')
 bow_image_inact = pg.image.load('файлы для игры/Иконки/shot_bow.jpg')
-bow_command = prepear_attack
-bow_command_name = 'выстрел из лука'
-
-bow = weapon(bow_name, bow_range_min, bow_range_max, bow_dmg, bow_pen, bow_act_cost, bow_power_cost, bow_image_act, bow_image_inact, bow_command, bow_command_name)
+bow = weapon('bow', 3, 10, d10[0], d10[1], 1, 10, 0, bow_image_act, bow_image_inact, prepear_attack, 'выстрел из лука')
 # endregion
 
 #огненный шар
 #region
-fire_Bolt_name = 'fire_Bolt'
-fire_Bolt_range_min = 3
-fire_Bolt_range_max = 20
-fire_Bolt_dmg = random.randint(3, 6)
-fire_Bolt_pen = random.randint(0, 3)
-fire_Bolt_act_cost = 5
-fire_Bolt_power_cost = 0
 fire_Bolt_image_act = pg.image.load('файлы для игры/Иконки/Fire_Bolt.jpg')
 fire_Bolt_image_inact = pg.image.load('файлы для игры/Иконки/Fire_Bolt.jpg')
-fire_Bolt_command = prepear_attack
-fire_Bolt_command_name = 'огненный шар'
-
-fire_Bolt = weapon(fire_Bolt_name, fire_Bolt_range_min, fire_Bolt_range_max, fire_Bolt_dmg, fire_Bolt_pen, fire_Bolt_act_cost, fire_Bolt_power_cost, fire_Bolt_image_act, fire_Bolt_image_inact, fire_Bolt_command, fire_Bolt_command_name)
+fire_Bolt = weapon('fire_Bolt', 3, 20, d6[0], d6[1], 0, 5, 0, fire_Bolt_image_act, fire_Bolt_image_inact, prepear_attack, 'огненный шар')
 # endregion
 
 
@@ -917,8 +870,8 @@ while True:
             change_pos(queue_person[0].pos)
             change_turn()
 
-    print("fps")
-    print(clock.get_fps())
+    #print("fps")
+    #print(clock.get_fps())
 
     pg.display.flip()
     clock.tick(FPS)
