@@ -1,8 +1,3 @@
-import pygame as pg
-from heapq import *
-import random
-import sys
-import math
 import time
 
 #планы и комментарии
@@ -17,7 +12,6 @@ import time
     #причина - нарушается принцип наследования. Нужно отдельно прописывать переменную. а потом передавать ее как атрибут
     #если он сразу прописан как атрибут, то при изменении, он меняется во всех экземплярах.
 
-#кол-во кадров - 60. Время должны быть 0.166. Но оно ниже. Понять почему.
 
 #закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
 #развернуть все: ctrl - shift - +
@@ -256,20 +250,32 @@ class tile():
         self.pos_offset_y = pos_offset_y
         self.image = image
 
-
-none = tile("none", '-', 2, TILE, 0, 0, 'файлы для игры/элементы поля/Grass1.png')
-tree1 = tile("tree", '+', '-', TILE*1.4, 8, 25, 'файлы для игры/элементы поля/Tree1.png')
-tree2 = tile("tree", '+', '-', TILE*1.4, 8, 25, 'файлы для игры/элементы поля/Tree2.png')
-tree3 = tile("tree", '+', '-', TILE*1.4, 8, 25, 'файлы для игры/элементы поля/Tree3.png')
-tree4 = tile("tree", '+', '-', TILE*1.4, 8, 25, 'файлы для игры/элементы поля/Tree4.png')
-tree5 = tile("tree", '+', '-', TILE*1.4, 8, 25, 'файлы для игры/элементы поля/Tree5.png')
-stone1 = tile("stone", '-', 4, TILE, 0, 0, 'файлы для игры/элементы поля/rock1.png')
-stone2 = tile("stone", '-', 4, TILE, 0, 0, 'файлы для игры/элементы поля/rock2.png')
-stone3 = tile("stone", '-', 4, TILE, 0, 0, 'файлы для игры/элементы поля/rock3.png')
-stone4 = tile("stone", '-', 4, TILE, 0, 0, 'файлы для игры/элементы поля/rock4.png')
-stone5 = tile("stone", '-', 4, TILE, 0, 0, 'файлы для игры/элементы поля/rock5.png')
-stone6 = tile("stone", '-', 4, TILE, 0, 0, 'файлы для игры/элементы поля/rock6.png')
-road = tile("road", '-', 1, TILE, 0, 0, 'файлы для игры/элементы поля/road1.jpg')
+none_img = pg.image.load('файлы для игры/элементы поля/Grass1.png')
+none = tile("none", '-', 2, TILE, 0, 0, none_img)
+tree1_img = pg.image.load('файлы для игры/элементы поля/Tree1.png')
+tree1 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree1_img)
+tree2_img = pg.image.load('файлы для игры/элементы поля/Tree2.png')
+tree2 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree2_img)
+tree3_img = pg.image.load('файлы для игры/элементы поля/Tree3.png')
+tree3 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree3_img)
+tree4_img = pg.image.load('файлы для игры/элементы поля/Tree4.png')
+tree4 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree4_img)
+tree5_img = pg.image.load('файлы для игры/элементы поля/Tree5.png')
+tree5 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree5_img)
+stone1_img = pg.image.load('файлы для игры/элементы поля/rock1.png')
+stone1 = tile("stone", '-', 4, TILE, 0, 0, stone1_img)
+stone2_img = pg.image.load('файлы для игры/элементы поля/rock2.png')
+stone2 = tile("stone", '-', 4, TILE, 0, 0, stone2_img)
+stone3_img = pg.image.load('файлы для игры/элементы поля/rock3.png')
+stone3 = tile("stone", '-', 4, TILE, 0, 0, stone3_img)
+stone4_img = pg.image.load('файлы для игры/элементы поля/rock4.png')
+stone4 = tile("stone", '-', 4, TILE, 0, 0, stone4_img)
+stone5_img = pg.image.load('файлы для игры/элементы поля/rock5.png')
+stone5 = tile("stone", '-', 4, TILE, 0, 0, stone5_img)
+stone6_img = pg.image.load('файлы для игры/элементы поля/rock6.png')
+stone6 = tile("stone", '-', 4, TILE, 0, 0, stone6_img)
+road_img = pg.image.load('файлы для игры/элементы поля/road1.jpg')
+road = tile("road", '-', 1, TILE, 0, 0, road_img)
 
 def create_tile(x, y, tile):
     grid[y][x] = tile.diff
@@ -341,7 +347,7 @@ def explore():
     for t in range(cols):
         for r in range(rows):
             if field[r][t] != none:
-                bg = pg.image.load(field[r][t].image).convert() #достает картинку
+                bg = field[r][t].image.convert() #достает картинку
                 bg.set_colorkey((255, 255, 255)) #это удаляет белый фон
                 bg = pg.transform.scale(bg, (field[r][t].size, field[r][t].size)) #размер объектов. Из атрибута экземпляра класса
                 sc.blit(bg, (mainfield_X + TILE * (t) - field[r][t].pos_offset_x, mainfield_Y + TILE * (r) - field[r][t].pos_offset_y)) #размещение объекта. с смещением для объема
@@ -351,7 +357,7 @@ def explore():
                 if i.hp > 0:
                     pg.draw.circle(sc, pg.Color(RED), *get_circle(*i.pos, 2), 2)
                     if i.pos[0] == t and i.pos[1] == r:
-                        bg = pg.image.load(i.image).convert()
+                        bg = i.image.convert()
                         bg.set_colorkey((255, 255, 255))  # это удаляет белый фон
                         bg = pg.transform.scale(bg, (TILE, TILE))
                         sc.blit(bg, (i.pos[0] * TILE, i.pos[1] * TILE))
@@ -417,7 +423,7 @@ def button_create(name, act_img, inact_img, command, item):
     size_X = 40
     size_Y = 40
 
-    bg = pg.image.load(act_img).convert()
+    bg = act_img.convert()
     bg = pg.transform.scale(bg, (size_X, size_Y))
     sc.blit(bg, (pos_X, pos_Y))
 
@@ -445,8 +451,9 @@ def create_buttom():
     buttons.clear()
     buttons.append(base_button)
 
-    button_create('end turn', 'файлы для игры/Иконки/next_turn.jpg', 'файлы для игры/Иконки/next_turn.jpg', change_turn, 1)
-    button_create('exit', 'файлы для игры/Иконки/exit.jpg', 'файлы для игры/Иконки/exit.jpg', exit_game, 1)
+
+    button_create('end turn', pg.image.load('файлы для игры/Иконки/next_turn.jpg'), pg.image.load('файлы для игры/Иконки/next_turn.jpg'), change_turn, 1)
+    button_create('exit', pg.image.load('файлы для игры/Иконки/exit.jpg'), pg.image.load('файлы для игры/Иконки/exit.jpg'), exit_game, 1)
     for i in queue_person[turn_person].items: #создаются кнопки исходя из списка предметов активного персонажа
         button_create(i.name, i.image_act, i.image_inact, i.command, i)
     return status
@@ -546,7 +553,7 @@ knight_power = 200
 knight_pos = (0, 0)
 knight_items = []
 knight_skills = []
-knight_image = 'файлы для игры/персонажи/knight1.jpg'
+knight_image = pg.image.load('файлы для игры/персонажи/knight1.jpg')
 
 def add_knight():
     knight = person("knight", knight_rule, knight_hp, knight_hp, knight_act_point_max, knight_act_point,knight_power_max, knight_power, knight_pos, knight_items, knight_skills, knight_image)
@@ -571,7 +578,7 @@ sorc_power = 200
 sorc_pos = (0, 0)
 sorc_items = []
 sorc_skills = []
-sorc_image = 'файлы для игры/персонажи/sorc1.jpg'
+sorc_image = pg.image.load('файлы для игры/персонажи/sorc1.jpg')
 
 def add_sorc():
     sorc = person("sorc", sorc_rule, sorc_hp, sorc_hp, sorc_act_point_max, sorc_act_point,sorc_power_max, sorc_power, sorc_pos, sorc_items, sorc_skills, sorc_image)
@@ -596,7 +603,7 @@ demon_power = 200
 demon_pos = (0, 0)
 demon_items = []
 demon_skills = []
-demon_image = 'файлы для игры/персонажи/demon.jpg'
+demon_image = pg.image.load('файлы для игры/персонажи/demon.jpg')
 
 def add_demon():
     demon = person("demon", 'AI', demon_hp, demon_hp, demon_act_point_max, demon_act_point, demon_power_max, demon_power, demon_pos, demon_items, demon_skills, demon_image)
@@ -609,21 +616,6 @@ def add_demon():
         else:
             demon.items.append(i)
 # endregion
-
-#размещение персонажей на экране. Прикаждом обновлении экрана
-#def person_position():
-#    global TILE, queue_person, grid
-#    for i in queue_person:
-#        if i.hp > 0:
-#            bg = pg.image.load(i.image).convert()
-#            bg.set_colorkey((255, 255, 255))  # это удаляет белый фон
-#            bg = pg.transform.scale(bg, (TILE, TILE))
-#            sc.blit(bg, (i.pos[0] * TILE, i.pos[1] * TILE))
-#
-#            grid[i.pos[1]][i.pos[0]] = 999
-#
-#            pg.draw.circle(sc, pg.Color(RED), *get_circle(*i.pos, 2), 2)
-
 
 # endregion
 
@@ -769,8 +761,8 @@ no_arm_dmg = random.randint(1, 3)
 no_arm_pen = random.randint(0, 1)
 no_arm_act_cost = 2
 no_arm_power_cost = 0
-no_arm_image_act = 'файлы для игры/Иконки/un_arm.png'
-no_arm_image_inact = 'файлы для игры/Иконки/un_arm.png'
+no_arm_image_act = pg.image.load('файлы для игры/Иконки/un_arm.png')
+no_arm_image_inact = pg.image.load('файлы для игры/Иконки/un_arm.png')
 no_arm_command = prepear_attack
 no_arm_command_name = 'безоружная атака'
 
@@ -786,8 +778,8 @@ might_dmg = random.randint(7, 10)
 might_pen = random.randint(0, 3)
 might_act_cost = 10
 might_power_cost = 0
-might_image_act = 'файлы для игры/Иконки/attack_might.jpg'
-might_image_inact = 'файлы для игры/Иконки/attack_might.jpg'
+might_image_act = pg.image.load('файлы для игры/Иконки/attack_might.jpg')
+might_image_inact = pg.image.load('файлы для игры/Иконки/attack_might.jpg')
 might_command = prepear_attack
 might_command_name = 'удар мечом'
 
@@ -803,8 +795,8 @@ bow_dmg = random.randint(7, 10)
 bow_pen = random.randint(0, 3)
 bow_act_cost = 10
 bow_power_cost = 0
-bow_image_act = 'файлы для игры/Иконки/shot_bow.jpg'
-bow_image_inact = 'файлы для игры/Иконки/shot_bow.jpg'
+bow_image_act = pg.image.load('файлы для игры/Иконки/shot_bow.jpg')
+bow_image_inact = pg.image.load('файлы для игры/Иконки/shot_bow.jpg')
 bow_command = prepear_attack
 bow_command_name = 'выстрел из лука'
 
@@ -820,8 +812,8 @@ fire_Bolt_dmg = random.randint(3, 6)
 fire_Bolt_pen = random.randint(0, 3)
 fire_Bolt_act_cost = 5
 fire_Bolt_power_cost = 0
-fire_Bolt_image_act = 'файлы для игры/Иконки/Fire_Bolt.jpg'
-fire_Bolt_image_inact = 'файлы для игры/Иконки/Fire_Bolt.jpg'
+fire_Bolt_image_act = pg.image.load('файлы для игры/Иконки/Fire_Bolt.jpg')
+fire_Bolt_image_inact = pg.image.load('файлы для игры/Иконки/Fire_Bolt.jpg')
 fire_Bolt_command = prepear_attack
 fire_Bolt_command_name = 'огненный шар'
 
