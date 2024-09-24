@@ -717,10 +717,11 @@ def change_turn():
 #region
 #эта функция расчитывает стоимость расстояния доцели. Дописать
 def choice_act_AI():
-    choice_act = {} #это словарь, в котором ключ - вес действия, а значение - само действие
+    choice_act2 = {} #это словарь, в котором ключ - вес действия, а значение - сама функция действиЯ
+    choice_act = {} #это словарь, в котором ключ - вес действия, а значение - значения передаваемые в функцию действия
+    keys = [] #это костыль. Я так и не понял как находить мин.ключ в словаре.
 
-    #этот цикл перебирает персонажей игрока и оценивает стоимость перемщения до них
-    #и добавляет в словарь вес:координаты
+
 
     #for p in queue_person:
     #    if j.rule == 'pl':
@@ -730,28 +731,32 @@ def choice_act_AI():
 
 
 
+
+    # этот цикл перебирает персонажей игрока и оценивает стоимость перемещения до них
+    # и добавляет в словарь вес:координаты
     for j in queue_person:
         if j.rule == 'pl':
             goal = j.pos
             path_head = goal
             path_segment = goal
             way = create_way(queue_person[turn_person].pos, path_head, path_segment, 1)
-
             x = -1
-            xx = 0
+            grid_way = 0
             for i in way:
                 if way.index(i) == 0 or way.index(i) == 1:
                     continue
                 else:
-                    xx += grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+                    grid_way += grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
                     x -= 1
-            choice_act[int(xx)] = j.pos
+            choice_act[int(grid_way)] = j.pos #добавляет в словарь вес: переменные в фунции (в данном случае координаты)
+            keys.append(int(grid_way)) #отдельно добавляем список весов, чтобы можно было найти минимальный, а потом через него найти значения
+            choice_act2[int(grid_way)] = change_pos #добавляет в словарь вес: функция действия
+            grid_way = 0
 
-    min_key = min(choice_act, key=choice_act.get)
-    min_value = choice_act[min_key]
-    change_pos(min_value)
-    xx = 0
 
+
+    choice_act2[min(keys)](choice_act[min(keys)])
+    choice_act = {}
 
 
 
@@ -836,7 +841,7 @@ def start_battle():
         add_sorc()
 
 
-    demons = 2
+    demons = 3
     for i in range(demons):
         add_demon()
 
@@ -913,7 +918,6 @@ while True:
 
         elif queue_person[turn_person].rule == 'AI':
             choice_act_AI()
-            #change_pos(queue_person[0].pos)
             change_turn()
 
     #print("fps")
