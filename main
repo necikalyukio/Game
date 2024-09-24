@@ -210,7 +210,7 @@ def create_way(start, goal, path_segment, diff_disc):
 
 #находит новую позицию, с учетом запаса действий
 def cp(end):
-    global grid, queue_person, turn_person, knight, field
+    global grid, queue_person, turn_person, field
     goal = end
     path_head = goal
     path_segment = goal
@@ -712,6 +712,51 @@ def change_turn():
 
 # endregion
 
+
+#поведение ИИ
+#region
+#эта функция расчитывает стоимость расстояния доцели. Дописать
+def choice_act_AI():
+    choice_act = {} #это словарь, в котором ключ - вес действия, а значение - само действие
+
+    #этот цикл перебирает персонажей игрока и оценивает стоимость перемщения до них
+    #и добавляет в словарь вес:координаты
+
+    #for p in queue_person:
+    #    if j.rule == 'pl':
+    #        if j.pos[0] - queue_person[turn_person].pos[0] == abs(1) and j.pos[1] - queue_person[turn_person].pos[1] == abs(1):
+    #            choice_act[int(999)] = j.pos
+
+
+
+
+    for j in queue_person:
+        if j.rule == 'pl':
+            goal = j.pos
+            path_head = goal
+            path_segment = goal
+            way = create_way(queue_person[turn_person].pos, path_head, path_segment, 1)
+
+            x = -1
+            xx = 0
+            for i in way:
+                if way.index(i) == 0 or way.index(i) == 1:
+                    continue
+                else:
+                    xx += grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+                    x -= 1
+            choice_act[int(xx)] = j.pos
+
+    min_key = min(choice_act, key=choice_act.get)
+    min_value = choice_act[min_key]
+    change_pos(min_value)
+    xx = 0
+
+
+
+
+# endregion
+
 #Оружие (предметы и атакующие навыки)
 #region
 class weapon:
@@ -867,7 +912,8 @@ while True:
                     status = 'move'
 
         elif queue_person[turn_person].rule == 'AI':
-            change_pos(queue_person[0].pos)
+            choice_act_AI()
+            #change_pos(queue_person[0].pos)
             change_turn()
 
     #print("fps")
