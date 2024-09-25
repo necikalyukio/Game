@@ -18,6 +18,11 @@ import time
     #причина - нарушается принцип наследования. Нужно отдельно прописывать переменную. а потом передавать ее как атрибут
     #если он сразу прописан как атрибут, то при изменении, он меняется во всех экземплярах.
 
+#поведение противников.
+    #работа начата. движение готово. Добавить атаки.
+    #понять как запускать функции сразу из словаря. Сейчас создается отдельно список с функциями (пермещение), и отдельно с переменными (координаты)
+        #необходимо чтобы по весу из словаря сразу шло обращение к "готовой" функции, а не сорьбирать ее из отдельных словарей по ключу
+
 
 #закладки (создать - выделить строку и нашать ctrl + f11, перемещение - нажать ctrl + число, список закладок alt + 2)
 #развернуть все: ctrl - shift - +
@@ -596,7 +601,7 @@ def add_sorc():
 #region
 demon_image = pg.image.load('файлы для игры/персонажи/demon.jpg')
 def add_demon():
-    demon = person("demon", 'AI', 200, 200, 10, 10, 200, 200, (0, 0), [], [], demon_image)
+    demon = person("demon", 'AI', 200, 200, 20, 20, 200, 200, (0, 0), [], [], demon_image)
     queue_person.append(demon)
 
     add_items = [might]
@@ -616,9 +621,9 @@ def add_demon():
 
 #атака
 #region
-def target_check():
+def target_check(pos):
     global TILE2
-    mouse_pos = get_mouse_pos()
+    #mouse_pos = get_mouse_pos()
 
     check_passed = '-'
 
@@ -634,8 +639,8 @@ def target_check():
     range_line.append(queue_person[turn_person].pos)
 
     for i in range(100):#создаем список клеток через которые проходит атака
-        x = queue_person[turn_person].pos[0] + round((mouse_pos[0] - queue_person[turn_person].pos[0]) / 100 * i)
-        y = queue_person[turn_person].pos[1] + round((mouse_pos[1] - queue_person[turn_person].pos[1]) / 100 * i)
+        x = queue_person[turn_person].pos[0] + round((pos[0] - queue_person[turn_person].pos[0]) / 100 * i)
+        y = queue_person[turn_person].pos[1] + round((pos[1] - queue_person[turn_person].pos[1]) / 100 * i)
         check = (x, y)
         if check in range_line:
             continue
@@ -670,16 +675,16 @@ def target_check():
     return check_passed
 
 
-def attack():
+def attack(pos):
     global status
-    mouse_pos = get_mouse_pos()
-
-    if queue_person[turn_person].act_point - select_item.act_cost < 0:  #это проверка что хватает очков действий
+    if int(queue_person[turn_person].act_point) - int(select_item.act_cost) < 0:  #это проверка что хватает очков действий
         print('недостаточно очков действий')
     else:
-        if target_check() == '+': #провека что цель можно атаковать (см.функцию)
+        if target_check(pos) == '+': #провека что цель можно атаковать (см.функцию)
             for i in queue_person:
-                if i.pos == mouse_pos:  #поиск параметров персонажа который атакован
+                print(pos)
+                print(i.pos)
+                if i.pos == pos:  #поиск параметров персонажа который атакован
                     i.hp -= random.randint(select_item.dmg, select_item.max_dmg) * 10
                     print(i.hp)
                     queue_person[turn_person].act_point -= select_item.act_cost
@@ -700,12 +705,15 @@ def change_pos(end):
 #смена хода
 def change_turn():
     global turn_person, queue_person
-    if queue_person[-1] == queue_person[turn_person]:
+    try:
+        if queue_person[-1] == queue_person[turn_person]:
+            turn_person = 0
+        else:
+            turn_person += 1
+        queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
+        create_buttom()
+    except:
         turn_person = 0
-    else:
-        turn_person += 1
-    queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
-    create_buttom()
     return turn_person
 
 
@@ -715,19 +723,23 @@ def change_turn():
 
 #поведение ИИ
 #region
-#эта функция расчитывает стоимость расстояния доцели. Дописать
+#эта функция расчитывает стоимость расстояния доцели.
+
 def choice_act_AI():
-    choice_act2 = {} #это словарь, в котором ключ - вес действия, а значение - сама функция действиЯ
+    global select_item
+    choice_act2 = {} #это словарь, в котором ключ - вес действия, а значение - сама функция действия
     choice_act = {} #это словарь, в котором ключ - вес действия, а значение - значения передаваемые в функцию действия
     keys = [] #это костыль. Я так и не понял как находить мин.ключ в словаре.
 
 
-
-    #for p in queue_person:
-    #    if j.rule == 'pl':
-    #        if j.pos[0] - queue_person[turn_person].pos[0] == abs(1) and j.pos[1] - queue_person[turn_person].pos[1] == abs(1):
-    #            choice_act[int(999)] = j.pos
-
+    #в работе: добавление атаки в список действий
+    for p in queue_person:
+        if p.rule == 'pl':
+            if abs(p.pos[0] - queue_person[turn_person].pos[0]) <= 1.1 and abs(p.pos[1] - queue_person[turn_person].pos[1]) <= 1.1:
+                select_item = might
+                choice_act[int(-1)] = p.pos
+                keys.append(int(-1))
+                choice_act2[int(-1)] = attack
 
 
 
@@ -751,13 +763,16 @@ def choice_act_AI():
             choice_act[int(grid_way)] = j.pos #добавляет в словарь вес: переменные в фунции (в данном случае координаты)
             keys.append(int(grid_way)) #отдельно добавляем список весов, чтобы можно было найти минимальный, а потом через него найти значения
             choice_act2[int(grid_way)] = change_pos #добавляет в словарь вес: функция действия
-            grid_way = 0
 
 
-
+    #запуск выбранной функции
     choice_act2[min(keys)](choice_act[min(keys)])
-    choice_act = {}
 
+    #print(choice_act2)
+    #print(min(keys))
+    #print(choice_act2[min(keys)])
+    #print(choice_act[min(keys)])
+    #print(choice_act2[min(keys)](choice_act[min(keys)]))
 
 
 # endregion
@@ -841,7 +856,7 @@ def start_battle():
         add_sorc()
 
 
-    demons = 3
+    demons = 2
     for i in range(demons):
         add_demon()
 
@@ -869,7 +884,7 @@ def checks():
     if status == 'move':
         path() # отрисовка пути.
     elif status == 'action':
-        target_check()
+        target_check(get_mouse_pos())
 
 
 #постоянно обновляемые элемены
@@ -912,7 +927,7 @@ while True:
 
             elif status == 'action':
                 if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                    attack()
+                    attack(get_mouse_pos())
                 elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                     status = 'move'
 
