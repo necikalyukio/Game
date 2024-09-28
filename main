@@ -547,6 +547,23 @@ def description():
             descr = pg.Rect(i.pos[0] * TILE, i.pos[1] * TILE + TILE+5, TILE * (i.power / i.power_max), 4)
             pg.draw.rect(sc, (BLUE), descr, 0)
 
+#порядок хода
+def turn_order():
+    global turn_person
+    #global TILE, cols, rows, mainfield_X, mainfield_Y, queue_person
+    turn_order_x = button_blok_x
+    turn_order_y = button_blok_y - 80
+
+    turn_order_blok = pg.Rect(turn_order_x, turn_order_y, 60*len(queue_person), 60)
+    pg.draw.rect(sc, (brown), turn_order_blok, 0)
+
+    for i in queue_person:
+        bg = i.image.convert()
+        bg.set_colorkey((255, 255, 255))  # это удаляет белый фон
+        bg = pg.transform.scale(bg, (TILE, TILE))
+        sc.blit(bg, (turn_order_x + ((TILE+5) * queue_person.index(i)), turn_order_y+5))
+
+
 # endregion
 
 #персонажи
@@ -683,11 +700,8 @@ def attack(pos):
     else:
         if target_check(pos) == '+': #провека что цель можно атаковать (см.функцию)
             for i in queue_person:
-                print(pos)
-                print(i.pos)
                 if i.pos == pos:  #поиск параметров персонажа который атакован
                     i.hp -= random.randint(select_item.dmg, select_item.max_dmg) * 10
-                    print(i.hp)
                     queue_person[turn_person].act_point -= select_item.act_cost
                     if i.hp <= 0:#удаление персонажа из списка персонажей, если он убит
                         queue_person.remove(i)
@@ -706,16 +720,16 @@ def change_pos(end):
 #смена хода
 def change_turn():
     global turn_person, queue_person
-    try:
-        if queue_person[-1] == queue_person[turn_person]:
-            turn_person = 0
-        else:
-            turn_person += 1
-        queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
-        create_buttom()
-    except:
-        turn_person = 0
-    return turn_person
+    pg.time.delay(200)
+
+
+    queue_person.append(queue_person[0])
+    queue_person.pop(0)
+
+    queue_person[turn_person].act_point = queue_person[turn_person].act_point_max
+    create_buttom()
+
+    return queue_person
 
 
 
@@ -734,46 +748,40 @@ def choice_act_AI():
 
 
     #в работе: добавление атаки в список действий
-    for p in queue_person:
-        if p.rule == 'pl':
-            if abs(p.pos[0] - queue_person[turn_person].pos[0]) <= 1.1 and abs(p.pos[1] - queue_person[turn_person].pos[1]) <= 1.1:
-                select_item = might
-                choice_act[int(-1)] = p.pos
-                keys.append(int(-1))
-                choice_act2[int(-1)] = attack
-
-
-
+    for i in range (10): #костыль
+        for p in queue_person:
+            if p.rule == 'pl':
+                if abs(p.pos[0] - queue_person[turn_person].pos[0]) <= 1.1 and abs(p.pos[1] - queue_person[turn_person].pos[1]) <= 1.1:
+                    select_item = might
+                    choice_act[int(1)] = p.pos
+                    keys.append(int(1))
+                    choice_act2[int(1)] = attack
 
     # этот цикл перебирает персонажей игрока и оценивает стоимость перемещения до них
     # и добавляет в словарь вес:координаты
-    for j in queue_person:
-        if j.rule == 'pl':
-            goal = j.pos
-            path_head = goal
-            path_segment = goal
-            way = create_way(queue_person[turn_person].pos, path_head, path_segment, 1)
-            x = -1
-            grid_way = 0
-            for i in way:
-                if way.index(i) == 0 or way.index(i) == 1:
-                    continue
-                else:
-                    grid_way += grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
-                    x -= 1
-            choice_act[int(grid_way)] = j.pos #добавляет в словарь вес: переменные в фунции (в данном случае координаты)
-            keys.append(int(grid_way)) #отдельно добавляем список весов, чтобы можно было найти минимальный, а потом через него найти значения
-            choice_act2[int(grid_way)] = change_pos #добавляет в словарь вес: функция действия
+        for j in queue_person:
+            if j.rule == 'pl':
+                goal = j.pos
+                path_head = goal
+                path_segment = goal
+                way = create_way(queue_person[turn_person].pos, path_head, path_segment, 1)
+                x = -1
+                grid_way = 0
+                for i in way:
+                    if way.index(i) == 0 or way.index(i) == 1:
+                        continue
+                    else:
+                        grid_way -= grid[way[x-1][1]][way[x-1][0]]*min(heuristic(way[x], way[x-1]), 1.5)
+                        x -= 1
+                choice_act[int(grid_way)] = j.pos #добавляет в словарь вес: переменные в фунции (в данном случае координаты)
+                keys.append(int(grid_way)) #отдельно добавляем список весов, чтобы можно было найти минимальный, а потом через него найти значения
+                choice_act2[int(grid_way)] = change_pos #добавляет в словарь вес: функция действия
 
 
     #запуск выбранной функции
-    choice_act2[min(keys)](choice_act[min(keys)])
+        choice_act2[max(keys)](choice_act[max(keys)])
+        print(choice_act2)
 
-    #print(choice_act2)
-    #print(min(keys))
-    #print(choice_act2[min(keys)])
-    #print(choice_act[min(keys)])
-    #print(choice_act2[min(keys)](choice_act[min(keys)]))
 
 
 # endregion
@@ -857,7 +865,7 @@ def start_battle():
         add_sorc()
 
 
-    demons = 2
+    demons = 1
     for i in range(demons):
         add_demon()
 
@@ -892,13 +900,14 @@ def checks():
 def upgrade():
 
     indicator_blok() #само поле с описанием
+    turn_order() #порядок хода
     button_blok() #само поле с кнопками
     create_buttom() #кнопки
     explore() #поле боя
 
     #person_position() #позиции персонажей
 
-    #различные индикаторы. Позже объеденить в одну функцию и расширить
+    #различные индикаторы. Позже объединить в одну функцию и расширить
     indicator_speed()
     indicator_name_pers()
     ind_status()
@@ -908,7 +917,7 @@ def upgrade():
 # endregion
 
 
-n = 0
+
 #основной цикл
 while True:
     upgrade()
@@ -925,16 +934,16 @@ while True:
                     # эта функция проверяет что клик мыши был на кнопках
                     # в случае успеха, выполняет функцию кнопки
                     click_button_block(event.pos[0], event.pos[1])
-
             elif status == 'action':
                 if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                     attack(get_mouse_pos())
                 elif event.type == pg.MOUSEBUTTONDOWN and event.button == 3:
                     status = 'move'
-
         elif queue_person[turn_person].rule == 'AI':
+            pg.time.delay(200)
             choice_act_AI()
             change_turn()
+        upgrade()
 
     #print("fps")
     #print(clock.get_fps())
