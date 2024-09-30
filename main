@@ -238,7 +238,7 @@ def cp(end):
                 newpos = way[x]
         except:
             continue
-    return newpos, act_point
+    return newpos, act_point, way
 
 #показывает путь без изменения позиции
 def path():
@@ -253,7 +253,7 @@ def path():
         except:
             continue
 
-    newpos, act_point = cp(mouse_pos)
+    newpos, act_point, way = cp(mouse_pos)
     pg.draw.circle(sc, pg.Color(LIGHT_BLUE), *get_circle(*newpos, 2), 2)
 
 # endregion
@@ -345,13 +345,10 @@ def crete_road():
 def explore():
     global TILE, cols, rows, mainfield_X, mainfield_Y, queue_person
 
-
-
     mainfield_X_end = mainfield_X + cols * TILE
     mainfield_Y_end = mainfield_Y + rows * TILE
     main = pg.Rect(mainfield_X, mainfield_Y, mainfield_X_end-mainfield_X, mainfield_Y_end-mainfield_Y)
     pg.draw.rect(sc, (GREEN), main, 0)
-
 
     for i in range(0, int(rows)+1):
         pg.draw.line(sc, (0, 0, 0), (mainfield_X, mainfield_Y + i * TILE), (mainfield_X_end, mainfield_Y + i * TILE))
@@ -384,6 +381,7 @@ def explore():
                         sc.blit(bg, (i.pos[0] * TILE, i.pos[1] * TILE))
                         grid[i.pos[1]][i.pos[0]] = 999
 
+    pg.draw.circle(sc, pg.Color(YELLOW), *get_circle(*queue_person[0].pos, 2), 2)
 
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
 #в данном случае меняет стартовую клетку на пустую.
@@ -707,10 +705,22 @@ def attack(pos):
 
 #меняет позицию
 def change_pos(end):
-    newpos, act_point = cp(end)
+    global queue_person
+    newpos, act_point, way = cp(end)
+    #print(way)
+    #print(newpos)
+    for i in reversed(way):
+        if i == newpos:
+            queue_person[turn_person].pos = newpos
+            break
+        else: #это плавное перемещение. 
+            pg.time.delay(200)
+            queue_person[turn_person].pos = i
+            upgrade()
+            pg.display.flip()
+        #print(queue_person[turn_person].pos)
     queue_person[turn_person].pos = newpos
     queue_person[turn_person].act_point = act_point
-
 
 #смена хода
 def change_turn():
@@ -884,23 +894,21 @@ start_battle()
 #обновления экрана
 #region
 def checks():
-    global status
+    global status, queue_person
     if status == 'move':
-        path() # отрисовка пути.
+        if queue_person[turn_person].rule == 'pl':
+            path() # отрисовка пути.
     elif status == 'action':
         target_check(get_mouse_pos())
 
 
 #постоянно обновляемые элемены
 def upgrade():
-
     indicator_blok() #само поле с описанием
     turn_order() #порядок хода
     button_blok() #само поле с кнопками
     create_buttom() #кнопки
     explore() #поле боя
-
-    #person_position() #позиции персонажей
 
     #различные индикаторы. Позже объединить в одну функцию и расширить
     indicator_speed()
