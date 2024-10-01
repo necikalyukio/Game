@@ -705,7 +705,6 @@ def attack(pos):
 
 #меняет позицию
 def change_pos(end):
-    global queue_person
     newpos, act_point, way = cp(end)
     #print(way)
     #print(newpos)
@@ -713,7 +712,7 @@ def change_pos(end):
         if i == newpos:
             queue_person[turn_person].pos = newpos
             break
-        else: #это плавное перемещение. 
+        else: #это плавное перемещение.
             pg.time.delay(200)
             queue_person[turn_person].pos = i
             upgrade()
