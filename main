@@ -262,41 +262,42 @@ def path():
 #region
 #клетка
 class tile():
-    def __init__ (self, type, closed, diff, size, pos_offset_x, pos_offset_y, image):
+    def __init__ (self, type, closed, diff, size, layer, pos_offset_x, pos_offset_y, image):
         self.type = type
         self.closed = closed
         self.diff = diff
         self.size = size
+        self.layer = layer
         self.pos_offset_x = pos_offset_x
         self.pos_offset_y = pos_offset_y
         self.image = image
 
 none_img = pg.image.load('файлы для игры/элементы поля/Grass1.png')
-none = tile("none", '-', 2, TILE, 0, 0, none_img)
+none = tile("none", '-', 2, TILE, 0, 0, 0, none_img)
 tree1_img = pg.image.load('файлы для игры/элементы поля/Tree1.png')
-tree1 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree1_img)
+tree1 = tile("tree", '+', '-', TILE*1.4, 1, 8, 25, tree1_img)
 tree2_img = pg.image.load('файлы для игры/элементы поля/Tree2.png')
-tree2 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree2_img)
+tree2 = tile("tree", '+', '-', TILE*1.4, 1, 8, 25, tree2_img)
 tree3_img = pg.image.load('файлы для игры/элементы поля/Tree3.png')
-tree3 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree3_img)
+tree3 = tile("tree", '+', '-', TILE*1.4, 1, 8, 25, tree3_img)
 tree4_img = pg.image.load('файлы для игры/элементы поля/Tree4.png')
-tree4 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree4_img)
+tree4 = tile("tree", '+', '-', TILE*1.4, 1, 8, 25, tree4_img)
 tree5_img = pg.image.load('файлы для игры/элементы поля/Tree5.png')
-tree5 = tile("tree", '+', '-', TILE*1.4, 8, 25, tree5_img)
+tree5 = tile("tree", '+', '-', TILE*1.4, 1, 8, 25, tree5_img)
 stone1_img = pg.image.load('файлы для игры/элементы поля/rock1.png')
-stone1 = tile("stone", '-', 4, TILE, 0, 0, stone1_img)
+stone1 = tile("stone", '-', 4, TILE, 1, 0, 0, stone1_img)
 stone2_img = pg.image.load('файлы для игры/элементы поля/rock2.png')
-stone2 = tile("stone", '-', 4, TILE, 0, 0, stone2_img)
+stone2 = tile("stone", '-', 4, TILE, 1, 0, 0, stone2_img)
 stone3_img = pg.image.load('файлы для игры/элементы поля/rock3.png')
-stone3 = tile("stone", '-', 4, TILE, 0, 0, stone3_img)
+stone3 = tile("stone", '-', 4, TILE, 1, 0, 0, stone3_img)
 stone4_img = pg.image.load('файлы для игры/элементы поля/rock4.png')
-stone4 = tile("stone", '-', 4, TILE, 0, 0, stone4_img)
+stone4 = tile("stone", '-', 4, TILE, 1, 0, 0, stone4_img)
 stone5_img = pg.image.load('файлы для игры/элементы поля/rock5.png')
-stone5 = tile("stone", '-', 4, TILE, 0, 0, stone5_img)
+stone5 = tile("stone", '-', 4, TILE, 1, 0, 0, stone5_img)
 stone6_img = pg.image.load('файлы для игры/элементы поля/rock6.png')
-stone6 = tile("stone", '-', 4, TILE, 0, 0, stone6_img)
+stone6 = tile("stone", '-', 4, TILE, 1, 0, 0, stone6_img)
 road_img = pg.image.load('файлы для игры/элементы поля/road1.jpg')
-road = tile("road", '-', 1, TILE, 0, 0, road_img)
+road = tile("road", '-', 1, TILE, 0, 0, 0, road_img)
 
 def create_tile(x, y, tile):
     grid[y][x] = tile.diff
@@ -361,18 +362,27 @@ def explore():
         for r in range(rows):
             grid[r][t] = field[r][t].diff
 
-    #размещение объектов
+    #размещение объектов уровня 0 (в данном случае дорога. Но любые предметы на земле)
     for t in range(cols):
         for r in range(rows):
-            if field[r][t] != none:
+            if field[r][t] != none and field[r][t].layer == 0:
                 bg = field[r][t].image.convert() #достает картинку
                 bg.set_colorkey((255, 255, 255)) #это удаляет белый фон
                 bg = pg.transform.scale(bg, (field[r][t].size, field[r][t].size)) #размер объектов. Из атрибута экземпляра класса
                 sc.blit(bg, (mainfield_X + TILE * (t) - field[r][t].pos_offset_x, mainfield_Y + TILE * (r) - field[r][t].pos_offset_y)) #размещение объекта. с смещением для объема
 
-            #размещение персонажей
+    #размещение объектов уровня 1 (деревья, камни)
+    for t in range(cols):
+        for r in range(rows):
+            if field[r][t] != none and field[r][t].layer == 1:
+                bg = field[r][t].image.convert() #достает картинку
+                bg.set_colorkey((255, 255, 255)) #это удаляет белый фон
+                bg = pg.transform.scale(bg, (field[r][t].size, field[r][t].size)) #размер объектов. Из атрибута экземпляра класса
+                sc.blit(bg, (mainfield_X + TILE * (t) - field[r][t].pos_offset_x, mainfield_Y + TILE * (r) - field[r][t].pos_offset_y)) #размещение объекта. с смещением для объема
+
+            # размещение персонажей
             for i in queue_person:
-                if i.hp > 0:
+                if i.hp > 0 and i.live == '+':
                     pg.draw.circle(sc, pg.Color(RED), *get_circle(*i.pos, 2), 2)
                     if i.pos[0] == t and i.pos[1] == r:
                         bg = i.image.convert()
@@ -380,7 +390,6 @@ def explore():
                         bg = pg.transform.scale(bg, (TILE, TILE))
                         sc.blit(bg, (i.pos[0] * TILE, i.pos[1] * TILE))
                         grid[i.pos[1]][i.pos[0]] = 999
-
 
 #эта функция изменяет конретную клетку. На вход подается функция нужной клетки и координаты
 #в данном случае меняет стартовую клетку на пустую.
@@ -563,7 +572,7 @@ def turn_order():
 #region
 
 class person:
-    def __init__(self, name, rule, maxhp, hp, act_point_max, act_point, power_max, power, pos, items, skills, image):
+    def __init__(self, name, rule, maxhp, hp, act_point_max, act_point, power_max, power, pos, items, skills, image, live):
         self.name = name
         self.rule = rule
         self.maxhp = maxhp
@@ -576,13 +585,14 @@ class person:
         self.items = items
         self.skills = skills
         self.image = image
+        self.live = live
 
 #knight
 #region
 
 knight_image = pg.image.load('файлы для игры/персонажи/knight1.jpg')
 def add_knight():
-    knight = person("knight", 'pl', 200, 200, 20, 20, 200, 200, (0, 0), [], [], knight_image)
+    knight = person("knight", 'pl', 200, 200, 20, 20, 200, 200, (0, 0), [], [], knight_image, '+')
     queue_person.append(knight)
 
     add_items = [no_arm, might, bow]
@@ -597,7 +607,7 @@ def add_knight():
 #region
 sorc_image = pg.image.load('файлы для игры/персонажи/sorc1.jpg')
 def add_sorc():
-    sorc = person("sorc", 'pl', 200, 200, 20, 20, 200, 200, (0, 0), [], [], sorc_image)
+    sorc = person("sorc", 'pl', 200, 200, 20, 20, 200, 200, (0, 0), [], [], sorc_image, '+')
     queue_person.append(sorc)
 
     add_items = [no_arm, fire_Bolt]
@@ -612,7 +622,7 @@ def add_sorc():
 #region
 demon_image = pg.image.load('файлы для игры/персонажи/demon.jpg')
 def add_demon():
-    demon = person("demon", 'AI', 200, 200, 20, 20, 200, 200, (0, 0), [], [], demon_image)
+    demon = person("demon", 'AI', 200, 200, 20, 20, 200, 200, (0, 0), [], [], demon_image, '+')
     queue_person.append(demon)
 
     add_items = [might]
@@ -707,18 +717,34 @@ def change_pos(end):
     newpos, act_point, way = cp(end)
     #print(way)
     #print(newpos)
+    queue_person[turn_person].live = '-' #костыль. Отображаются только персонажи с "+". Чтобы убрать с экрана на момент отображения анимации перемещения
     for i in reversed(way):
+        #queue_person[turn_person].pos = i
         if i == newpos:
             queue_person[turn_person].pos = newpos
+            pg.display.flip()
             break
         else: #это плавное перемещение.
-            pg.time.delay(200)
-            queue_person[turn_person].pos = i
-            upgrade()
-            pg.display.flip()
-        #print(queue_person[turn_person].pos)
+            pg.time.delay(100)
+
+            x = way[way.index(i) - 1][0] - i[0] #для смещения изображения и плавного перемещения между клетками
+            y = way[way.index(i) - 1][1] - i[1] #для смещения изображения и плавного перемещения между клетками
+
+            for j in range (10):
+                bg = queue_person[turn_person].image.convert()
+                bg.set_colorkey((255, 255, 255))  # это удаляет белый фон
+                bg = pg.transform.scale(bg, (TILE, TILE))
+                sc.blit(bg, (i[0] * TILE + TILE/10*j*x, i[1] * TILE + TILE/10*j*y))
+                pg.display.flip()
+                if j != 9:
+                    upgrade() #в последней итерации цикла обновление не требуетя, чтобы картинка перснажа на "моргала"
+
+
+
+    queue_person[turn_person].live = '+'
     queue_person[turn_person].pos = newpos
     queue_person[turn_person].act_point = act_point
+
 
 #смена хода
 def change_turn():
